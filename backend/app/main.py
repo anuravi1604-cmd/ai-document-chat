@@ -8,8 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, HTMLResponse
 from pydantic import BaseModel
 
-from backend.app.config import UPLOAD_DIR, INDEX_DIR
-from backend.app.storage import (
+from app.config import UPLOAD_DIR, INDEX_DIR
+from app.storage import (
     init_db,
     add_file,
     update_file_status,
@@ -22,7 +22,7 @@ from backend.app.storage import (
     get_session_messages,
     clear_chat_history
 )
-from backend.app.pipeline import RAGPipeline
+from app.pipeline import RAGPipeline
 
 app = FastAPI(
     title="Antigravity AI Document Chat RAG Backend",
@@ -65,7 +65,7 @@ def process_document_in_background(file_id: str, file_path: str):
 
 def add_chunks_wrapper(file_id: str, chunks: list):
     """Auxiliary to avoid import cycles / inline storage operation."""
-    from backend.app.storage import add_chunks
+    from app.storage import add_chunks
     add_chunks(file_id, chunks)
 
 

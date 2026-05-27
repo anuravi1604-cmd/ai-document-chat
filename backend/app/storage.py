@@ -3,7 +3,7 @@ import sqlite3
 import json
 import uuid
 from datetime import datetime
-from backend.app.config import DB_PATH
+from app.config import DB_PATH
 
 def get_db_connection():
     """Establishes a connection to the SQLite database with dictionary rows."""
