@@ -1,0 +1,12 @@
+# Python bytecode and run caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Local databases and indexes (Do not push to Git!)
+backend/data/
+
+# OS metadata
+.DS_Store
+Thumbs.db

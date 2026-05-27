@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity AI | RAG Document Chat</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f7ff',
+                            100: '#ebf0ff',
+                            200: '#d6e0ff',
+                            300: '#b3c7ff',
+                            400: '#85a3ff',
+                            500: '#5c7aff',
+                            600: '#3d52eb',
+                            700: '#2d3ccf',
+                            800: '#2531a8',
+                            900: '#242e85',
+                            950: '#151a4f',
+                        },
+                        darkBg: '#090a0f',
+                        darkPanel: '#11131c',
+                        darkCard: '#1a1d29',
+                        darkBorder: '#262a3a',
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Google Fonts & Lucide Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Markdown Parser (marked.js) -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <!-- Code Highlighting (Prism.js) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Outfit', 'Inter', sans-serif;
+            background-color: #090a0f;
+            color: #e2e8f0;
+        }
+        
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090a0f;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #262a3a;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b3f54;
+        }
+
+        /* Markdown Styles overriding */
+        .prose p { margin-bottom: 0.8rem; line-height: 1.6; }
+        .prose ul, .prose ol { margin-left: 1.5rem; margin-bottom: 0.8rem; list-style-type: disc; }
+        .prose ol { list-style-type: decimal; }
+        .prose code { font-family: 'JetBrains Mono', monospace; font-size: 0.85em; background: #1a1d29; padding: 0.15rem 0.3rem; border-radius: 4px; color: #f472b6; }
+        .prose pre code { background: none; padding: 0; color: inherit; }
+        .prose pre { background: #11131c; padding: 1rem; border-radius: 8px; border: 1px solid #262a3a; margin-top: 0.5rem; margin-bottom: 1rem; overflow-x: auto; font-family: 'JetBrains Mono', monospace; }
+        .prose h1, .prose h2, .prose h3 { font-weight: 600; color: #fff; margin-top: 1.2rem; margin-bottom: 0.6rem; }
+        .prose h1 { font-size: 1.5rem; }
+        .prose h2 { font-size: 1.3rem; }
+        .prose h3 { font-size: 1.1rem; }
+        .prose table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9em; text-align: left; }
+        .prose th { background-color: #1a1d29; border: 1px solid #262a3a; padding: 8px 12px; font-weight: 600; color: #fff; }
+        .prose td { border: 1px solid #262a3a; padding: 8px 12px; }
+        .prose tr:nth-child(even) { background-color: rgba(38, 42, 58, 0.2); }
+        .prose blockquote { border-left: 4px solid #5c7aff; padding-left: 1rem; color: #94a3b8; font-style: italic; margin: 1rem 0; }
+        
+        /* Glassmorphic elements */
+        .glass-panel {
+            background: rgba(17, 19, 28, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .glass-card {
+            background: rgba(26, 29, 41, 0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .glass-card:hover {
+            background: rgba(26, 29, 41, 0.85);
+            border-color: rgba(92, 122, 255, 0.2);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Animations */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.5; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(0.95); opacity: 0.5; }
+        }
+        .pulse-ring {
+            animation: pulse-ring 2s infinite ease-in-out;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Streaming dot cursor */
+        .typing-cursor::after {
+            content: "▊";
+            display: inline-block;
+            margin-left: 2px;
+            color: #5c7aff;
+            animation: blink 0.8s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body class="h-full overflow-hidden flex flex-col antialiased">
+
+    <!-- TOP NAV -->
+    <header class="glass-panel border-b border-darkBorder/60 px-6 py-4 flex items-center justify-between z-10 shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
+                <i data-lucide="zap" class="h-5 w-5 text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-wide text-white flex items-center gap-2">
+                    ANTIGRAVITY <span class="bg-brand-600/20 border border-brand-500/30 text-brand-400 text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">RAG PRO</span>
+                </h1>
+                <p class="text-[11px] text-gray-400">Isolated Multi-File Document Chat System</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-medium">
+                <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                Local Engine Active
+            </div>
+            <a href="https://github.com" target="_blank" class="h-9 w-9 rounded-lg hover:bg-white/5 border border-darkBorder flex items-center justify-center transition">
+                <i data-lucide="github" class="h-4 w-4 text-gray-400"></i>
+            </a>
+        </div>
+    </header>
+
+    <!-- WRAPPER -->
+    <div class="flex flex-1 overflow-hidden relative">
+        
+        <!-- SIDEBAR -->
+        <aside class="w-80 border-r border-darkBorder/60 bg-darkBg flex flex-col shrink-0 overflow-hidden">
+            
+            <!-- UPLOAD PANEL -->
+            <div class="p-5 border-b border-darkBorder/40">
+                <div id="drop-zone" class="border-2 border-dashed border-darkBorder hover:border-brand-500/50 rounded-xl p-6 text-center cursor-pointer bg-darkPanel/30 hover:bg-brand-500/[0.02] transition flex flex-col items-center justify-center relative group">
+                    <input type="file" id="file-input" class="hidden" accept=".pdf,.docx,.txt,.md,.markdown" />
+                    <div class="h-10 w-10 rounded-lg bg-darkBorder group-hover:bg-brand-600/10 group-hover:text-brand-400 flex items-center justify-center mb-3 transition">
+                        <i data-lucide="upload-cloud" class="h-5 w-5 text-gray-400 group-hover:text-brand-400"></i>
+                    </div>
+                    <p class="text-xs font-semibold text-gray-200">Drag & drop files here</p>
+                    <p class="text-[10px] text-gray-400 mt-1">Supports PDF, DOCX, TXT, MD up to 25MB</p>
+                </div>
+            </div>
+
+            <!-- SEARCH FILES -->
+            <div class="px-5 py-3 border-b border-darkBorder/20">
+                <div class="relative">
+                    <i data-lucide="search" class="absolute left-3 top-2.5 h-4 w-4 text-gray-400"></i>
+                    <input type="text" id="search-files" placeholder="Search uploaded documents..." class="w-full bg-darkPanel border border-darkBorder/80 rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/50 text-gray-200 placeholder-gray-500 transition" />
+                </div>
+            </div>
+
+            <!-- FILES LIST CONTAINER -->
+            <div class="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2">
+                <div class="flex items-center justify-between px-1 mb-2">
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Your Documents</span>
+                    <span id="file-count" class="bg-darkBorder text-gray-400 text-[10px] font-medium px-2 py-0.5 rounded-full">0 files</span>
+                </div>
+                
+                <div id="files-list" class="flex flex-col gap-2">
+                    <!-- Dynamic File Items go here -->
+                    <div class="text-center py-8 text-gray-500">
+                        <i data-lucide="folder-open" class="h-8 w-8 mx-auto mb-2 text-gray-600"></i>
+                        <p class="text-xs">No documents uploaded yet</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOOTER -->
+            <div class="p-4 border-t border-darkBorder/40 bg-darkPanel/25 flex items-center justify-between text-xs text-gray-400 shrink-0">
+                <div class="flex items-center gap-2">
+                    <div class="h-5 w-5 bg-brand-600/10 text-brand-400 flex items-center justify-center rounded">
+                        <i data-lucide="bot" class="h-3 w-3"></i>
+                    </div>
+                    <span>Mistral 7B (Ollama)</span>
+                </div>
+                <div class="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
+            </div>
+        </aside>
+
+        <!-- MAIN AREA -->
+        <main class="flex-1 flex flex-col bg-[#0b0c13] relative overflow-hidden">
+            
+            <!-- CHAT WORKSPACE HEADER (Hidden when no active chat) -->
+            <div id="chat-header" class="hidden glass-panel border-b border-darkBorder/50 px-6 py-4 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-3">
+                    <div id="active-file-icon" class="h-10 w-10 rounded-lg bg-brand-600/10 text-brand-400 flex items-center justify-center border border-brand-500/20">
+                        <!-- Icon injected dynamically -->
+                    </div>
+                    <div>
+                        <h2 id="active-file-title" class="text-sm font-semibold text-white truncate max-w-md">Document Name.pdf</h2>
+                        <div class="flex items-center gap-2 mt-0.5">
+                            <span id="active-file-size" class="text-[10px] text-gray-400">1.2 MB</span>
+                            <span class="text-gray-600">•</span>
+                            <span class="text-[10px] text-brand-400 font-medium">Isolated Chat Session</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button id="btn-clear-chat" class="px-3 py-1.5 rounded-lg border border-darkBorder/80 hover:bg-red-500/10 hover:text-red-400 text-xs text-gray-400 font-medium flex items-center gap-1.5 transition">
+                        <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
+                        Clear History
+                    </button>
+                    <button id="btn-delete-file" class="px-3 py-1.5 rounded-lg border border-darkBorder/80 hover:bg-red-500/20 hover:text-red-400 text-xs text-gray-400 font-medium flex items-center gap-1.5 transition">
+                        <i data-lucide="file-minus" class="h-3.5 w-3.5"></i>
+                        Delete File
+                    </button>
+                </div>
+            </div>
+
+            <!-- CHAT BODY / MESSAGE FEED -->
+            <div id="chat-feed" class="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col gap-6">
+                <!-- Welcome Blank Slate -->
+                <div id="blank-slate" class="flex-grow flex flex-col items-center justify-center text-center max-w-lg mx-auto p-8 fade-in select-none">
+                    <div class="h-16 w-16 rounded-2xl bg-gradient-to-tr from-brand-600/20 to-brand-400/10 border border-brand-500/25 flex items-center justify-center mb-6 shadow-xl shadow-brand-500/[0.03]">
+                        <i data-lucide="sparkles" class="h-8 w-8 text-brand-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-2">Build Isolated AI Knowledge bases</h3>
+                    <p class="text-gray-400 text-sm mb-8 leading-relaxed">Select a document from the left sidebar to start a private, localized chat session. The AI will strictly ground its responses in your uploaded content.</p>
+                    
+                    <div class="grid grid-cols-2 gap-4 w-full text-left">
+                        <div class="p-4 rounded-xl border border-darkBorder/50 bg-darkPanel/20">
+                            <i data-lucide="shield" class="h-4.5 w-4.5 text-brand-400 mb-2"></i>
+                            <h4 class="text-xs font-semibold text-gray-200">100% Isolated</h4>
+                            <p class="text-[10px] text-gray-500 mt-1">Queries strictly target context segments from the selected document.</p>
+                        </div>
+                        <div class="p-4 rounded-xl border border-darkBorder/50 bg-darkPanel/20">
+                            <i data-lucide="git-merge" class="h-4.5 w-4.5 text-indigo-400 mb-2"></i>
+                            <h4 class="text-xs font-semibold text-gray-200">Hybrid Search + Reranker</h4>
+                            <p class="text-[10px] text-gray-500 mt-1">Combines FAISS semantic search and BM25 keywords, reranked by MiniLM.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CHAT INPUT CONTAINER -->
+            <div id="chat-input-bar" class="p-4 md:p-6 border-t border-darkBorder/30 bg-darkPanel/20 shrink-0 hidden">
+                <form id="chat-form" class="max-w-4xl mx-auto relative flex items-end bg-darkPanel border border-darkBorder focus-within:border-brand-500/50 focus-within:ring-1 focus-within:ring-brand-500/50 rounded-2xl p-2 pr-3 transition">
+                    <textarea id="user-input" rows="1" placeholder="Ask a question about this document..." class="flex-1 bg-transparent border-0 outline-none text-sm text-gray-200 placeholder-gray-500 px-3 py-2 resize-none max-h-32 focus:ring-0 focus:outline-none focus:border-0" style="height: 38px;"></textarea>
+                    
+                    <button type="submit" id="btn-send" class="h-9 w-9 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:bg-darkBorder disabled:text-gray-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-brand-500/10 hover:shadow-brand-500/20 active:scale-95 transition">
+                        <i data-lucide="arrow-up" class="h-4 w-4"></i>
+                    </button>
+                </form>
+                <div class="max-w-4xl mx-auto flex items-center justify-between mt-2 px-1 text-[10px] text-gray-500">
+                    <span class="flex items-center gap-1"><i data-lucide="lock" class="h-3 w-3"></i> Private Context Grounding Enabled</span>
+                    <span>Press Enter to send, Shift+Enter for new line</span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed top-6 right-6 z-50 flex flex-col gap-2 max-w-sm"></div>
+
+    <!-- MAIN JAVASCRIPT LOGIC -->
+    <script>
+        const API_BASE = `${window.location.origin}/api`;
+        let files = [];
+        let activeFileId = null;
+        let isGenerating = false;
+        
+        // DOM Elements
+        const dropZone = document.getElementById("drop-zone");
+        const fileInput = document.getElementById("file-input");
+        const filesList = document.getElementById("files-list");
+        const fileCount = document.getElementById("file-count");
+        const searchFiles = document.getElementById("search-files");
+        
+        const chatHeader = document.getElementById("chat-header");
+        const activeFileIcon = document.getElementById("active-file-icon");
+        const activeFileTitle = document.getElementById("active-file-title");
+        const activeFileSize = document.getElementById("active-file-size");
+        const chatFeed = document.getElementById("chat-feed");
+        const blankSlate = document.getElementById("blank-slate");
+        const chatInputBar = document.getElementById("chat-input-bar");
+        const chatForm = document.getElementById("chat-form");
+        const userInput = document.getElementById("user-input");
+        const btnSend = document.getElementById("btn-send");
+        const btnClearChat = document.getElementById("btn-clear-chat");
+        const btnDeleteFile = document.getElementById("btn-delete-file");
+        
+        // Initialize
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchFiles();
+            initDragAndDrop();
+            initTextareaAutoGrow();
+            
+            // Periodically refresh list of processing files
+            setInterval(pollProcessingFiles, 4000);
+        });
+
+        // Icon Utility
+        const fileIconMap = {
+            "pdf": "file-text",
+            "docx": "file-word",
+            "txt": "file-edit"
+        };
+        
+        function getFileIcon(type) {
+            const lucideName = fileIconMap[type] || "file";
+            return `<i data-lucide="${lucideName}" class="h-4.5 w-4.5"></i>`;
+        }
+
+        // Create a Toast Alert
+        function showToast(title, message, type = "info") {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = `glass-panel p-4 rounded-xl shadow-xl flex items-start gap-3 border border-darkBorder/80 fade-in select-none`;
+            
+            let colorClass = "text-blue-400 bg-blue-500/10";
+            let iconName = "info";
+            if (type === "success") {
+                colorClass = "text-emerald-400 bg-emerald-500/10";
+                iconName = "check-circle-2";
+            } else if (type === "error") {
+                colorClass = "text-rose-400 bg-rose-500/10";
+                iconName = "alert-circle";
+            } else if (type === "warning") {
+                colorClass = "text-amber-400 bg-amber-500/10";
+                iconName = "alert-triangle";
+            }
+            
+            toast.innerHTML = `
+                <div class="h-8 w-8 rounded-lg ${colorClass} flex items-center justify-center shrink-0">
+                    <i data-lucide="${iconName}" class="h-4.5 w-4.5"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-xs font-bold text-white">${title}</p>
+                    <p class="text-[10px] text-gray-400 mt-0.5 leading-relaxed">${message}</p>
+                </div>
+                <button class="text-gray-500 hover:text-gray-300 shrink-0 mt-0.5 transition" onclick="this.parentElement.remove()">
+                    <i data-lucide="x" class="h-3.5 w-3.5"></i>
+                </button>
+            `;
+            container.appendChild(toast);
+            lucide.createIcons();
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                toast.classList.add("opacity-0", "translate-y-2");
+                toast.style.transition = "all 0.4s ease";
+                setTimeout(() => toast.remove(), 400);
+            }, 5000);
+        }
+
+        // Fetch all documents from API
+        async function fetchFiles() {
+            try {
+                const response = await fetch(`${API_BASE}/files`);
+                if (!response.ok) throw new Error("Could not load documents");
+                files = await response.ok ? await response.json() : [];
+                renderFilesList();
+            } catch (err) {
+                console.error(err);
+                showToast("Network Error", "Could not fetch uploaded files from RAG backend engine.", "error");
+            }
+        }
+
+        // Render Files List in Sidebar
+        function renderFilesList() {
+            const query = searchFiles.value.toLowerCase().trim();
+            const filtered = files.filter(f => f.filename.toLowerCase().includes(query));
+            
+            fileCount.innerText = `${files.length} file${files.length !== 1 ? 's' : ''}`;
+            
+            if (filtered.length === 0) {
+                filesList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <i data-lucide="file-warning" class="h-8 w-8 mx-auto mb-2 text-gray-600"></i>
+                        <p class="text-xs">${query ? 'No matching documents' : 'No documents uploaded'}</p>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+            
+            filesList.innerHTML = filtered.map(file => {
+                const sizeKB = (file.file_size / 1024).toFixed(0);
+                const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
+                const isActive = file.id === activeFileId;
+                
+                let statusBadge = "";
+                let itemClass = "hover:bg-darkPanel border border-transparent";
+                let pointerClass = "cursor-pointer";
+                
+                if (file.status === "processing") {
+                    statusBadge = `
+                        <span class="flex items-center gap-1 text-[9px] font-semibold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded-full">
+                            <span class="h-1.5 w-1.5 rounded-full bg-brand-400 animate-pulse"></span>
+                            Indexing...
+                        </span>`;
+                    itemClass = "bg-darkPanel/20 border border-darkBorder/30 animate-pulse";
+                    pointerClass = "cursor-not-allowed";
+                } else if (file.status === "error") {
+                    statusBadge = `<span class="text-[9px] font-semibold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded-full flex items-center gap-1"><i data-lucide="x" class="h-2.5 w-2.5"></i> Failed</span>`;
+                } else if (isActive) {
+                    itemClass = "bg-gradient-to-tr from-brand-600/10 to-indigo-500/[0.03] border border-brand-500/25 shadow-lg shadow-brand-500/[0.02]";
+                } else {
+                    itemClass = "bg-darkPanel/40 hover:bg-darkPanel border border-darkBorder/40";
+                }
+                
+                return `
+                    <div onclick="selectWorkspace('${file.id}', '${file.status}')" class="p-3.5 rounded-xl transition ${pointerClass} ${itemClass} flex items-start justify-between group">
+                        <div class="flex items-start gap-3 min-w-0">
+                            <div class="h-8.5 w-8.5 rounded-lg bg-darkBorder group-hover:bg-darkBorder flex items-center justify-center shrink-0 text-gray-400 ${isActive ? 'text-brand-400 bg-brand-500/10 border border-brand-500/10' : ''}">
+                                ${getFileIcon(file.file_type)}
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-xs font-semibold text-gray-200 truncate pr-2 group-hover:text-white transition">${file.filename}</p>
+                                <div class="flex items-center gap-1.5 mt-1">
+                                    <span class="text-[9px] text-gray-500">${sizeStr}</span>
+                                    <span class="text-gray-700 text-[9px]">•</span>
+                                    <span class="text-[9px] text-gray-500">${new Date(file.uploaded_at).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="shrink-0 pl-2">
+                            ${statusBadge}
+                        </div>
+                    </div>
+                `;
+            }).join("");
+            
+            lucide.createIcons();
+        }
+
+        // Active Search Filter
+        searchFiles.addEventListener("input", renderFilesList);
+
+        // Poll files that are indexing to check status
+        async function pollProcessingFiles() {
+            const hasProcessing = files.some(f => f.status === "processing");
+            if (!hasProcessing) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/files`);
+                if (response.ok) {
+                    const newFiles = await response.json();
+                    
+                    // Check if any finished indexing to Toast it
+                    newFiles.forEach(nf => {
+                        const oldFile = files.find(of => of.id === nf.id);
+                        if (oldFile && oldFile.status === "processing" && nf.status === "ready") {
+                            showToast("Document Processed", `"${nf.filename}" has been successfully parsed, chunked, and embedded into vector db. Ready for workspace.`, "success");
+                            if (activeFileId === nf.id) {
+                                selectWorkspace(nf.id, "ready");
+                            }
+                        } else if (oldFile && oldFile.status === "processing" && nf.status === "error") {
+                            showToast("Indexing Failed", `An error occurred during indexing for "${nf.filename}".`, "error");
+                        }
+                    });
+                    
+                    files = newFiles;
+                    renderFilesList();
+                }
+            } catch (err) {
+                console.error("Polling error:", err);
+            }
+        }
+
+        // Handle Active workspace Selection
+        async function selectWorkspace(fileId, status) {
+            if (status === "processing") {
+                showToast("Document Indexing", "Please wait! The Hybrid semantic indices are being constructed for this document.", "warning");
+                return;
+            }
+            
+            activeFileId = fileId;
+            renderFilesList();
+            
+            const file = files.find(f => f.id === fileId);
+            if (!file) return;
+            
+            // 1. Show main UI components
+            blankSlate.classList.add("hidden");
+            chatHeader.classList.remove("hidden");
+            chatInputBar.classList.remove("hidden");
+            
+            // 2. Load workspace metadata header
+            const sizeKB = (file.file_size / 1024).toFixed(0);
+            const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
+            
+            activeFileTitle.innerText = file.filename;
+            activeFileSize.innerText = sizeStr;
+            activeFileIcon.innerHTML = getFileIcon(file.file_type);
+            lucide.createIcons();
+            
+            // 3. Clear existing feed and load messages
+            chatFeed.innerHTML = `
+                <div class="flex-1 flex items-center justify-center py-12">
+                    <span class="h-6 w-6 rounded-full border-2 border-brand-500/20 border-t-brand-500 animate-spin"></span>
+                </div>
+            `;
+            
+            try {
+                const response = await fetch(`${API_BASE}/files/${fileId}/messages`);
+                if (!response.ok) throw new Error("Could not load messages");
+                const res = await response.json();
+                
+                chatFeed.innerHTML = "";
+                
+                if (res.messages.length === 0) {
+                    renderEmptyChatState(file.filename);
+                } else {
+                    res.messages.forEach(msg => {
+                        appendMessageBubble(msg.role, msg.content, msg.sources, false);
+                    });
+                }
+                scrollToBottom();
+            } catch (err) {
+                console.error(err);
+                showToast("Error", "Could not retrieve session history.", "error");
+            }
+        }
+
+        function renderEmptyChatState(filename) {
+            chatFeed.innerHTML = `
+                <div class="flex-grow flex flex-col items-center justify-center text-center max-w-lg mx-auto py-12 fade-in select-none">
+                    <div class="h-12 w-12 rounded-xl bg-brand-600/10 border border-brand-500/15 flex items-center justify-center mb-4">
+                        <i data-lucide="message-square" class="h-6 w-6 text-brand-400"></i>
+                    </div>
+                    <h4 class="text-sm font-semibold text-white">Start the conversation</h4>
+                    <p class="text-gray-400 text-xs mt-1 leading-relaxed">Ask anything about "${filename}". The retrieval pipeline will fetch source passages, score them, rerank them, and ground the assistant answer.</p>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        // Send Chat Prompt & Stream Response (SSE)
+        chatForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!activeFileId || isGenerating) return;
+            
+            const query = userInput.value.trim();
+            if (!query) return;
+            
+            // Disable input while generating
+            userInput.value = "";
+            userInput.style.height = "38px";
+            isGenerating = true;
+            toggleInputState(true);
+            
+            // Remove empty states if present
+            const slate = chatFeed.querySelector("#blank-slate") || chatFeed.querySelector(".select-none");
+            if (slate) chatFeed.innerHTML = "";
+            
+            // 1. Append User Message
+            appendMessageBubble("user", query, null, false);
+            scrollToBottom();
+            
+            // 2. Setup streaming Assistant bubble
+            const assistantBubble = appendMessageBubble("assistant", "", null, true);
+            const contentDiv = assistantBubble.querySelector(".message-content");
+            const citationsDiv = assistantBubble.querySelector(".sources-container");
+            scrollToBottom();
+            
+            try {
+                const response = await fetch(`${API_BASE}/files/${activeFileId}/chat`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ query: query })
+                });
+                
+                if (!response.ok) {
+                    const errObj = await response.json();
+                    throw new Error(errObj.detail || "Server failed to stream");
+                }
+                
+                // Create Reader to handle SSE chunked stream
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let accumulatedAnswer = "";
+                let buffer = "";
+                
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split("\n");
+                    buffer = lines.pop(); // keep partial trailing line
+                    
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (!trimmed) continue;
+                        
+                        if (trimmed.startsWith("event: sources")) {
+                            // Extract sources JSON
+                            const rawData = trimmed.replace("event: sources\ndata: ", "").replace("event: sources", "").trim();
+                            if (rawData) {
+                                try {
+                                    // Sometimes data comes on a separate line
+                                    const jsonString = rawData.substring(rawData.indexOf("data:") + 5).trim();
+                                    const sources = JSON.parse(jsonString);
+                                    renderSourcesCitation(citationsDiv, sources);
+                                } catch (e) {
+                                    // Multi-line parse fallback
+                                    console.log("Sources metadata stream buffering...");
+                                }
+                            }
+                        } else if (trimmed.startsWith("data: ")) {
+                            // Try to parse token or source
+                            const dataPayload = trimmed.replace("data: ", "").trim();
+                            if (dataPayload === "[DONE]") {
+                                break;
+                            }
+                            
+                            try {
+                                const parsedVal = JSON.parse(dataPayload);
+                                if (Array.isArray(parsedVal)) {
+                                    // RAG sources emission
+                                    renderSourcesCitation(citationsDiv, parsedVal);
+                                } else if (typeof parsedVal === "string") {
+                                    // Token emission
+                                    accumulatedAnswer += parsedVal;
+                                    contentDiv.innerHTML = marked.parse(accumulatedAnswer);
+                                    Prism.highlightAllUnder(contentDiv);
+                                    
+                                    // Enable copy code buttons
+                                    setupCopyButtons(contentDiv);
+                                    
+                                    scrollToBottom();
+                                }
+                            } catch (err) {
+                                // Fallback for raw text token
+                                accumulatedAnswer += dataPayload;
+                                contentDiv.innerHTML = marked.parse(accumulatedAnswer);
+                                scrollToBottom();
+                            }
+                        }
+                    }
+                }
+                
+                // Finish streaming
+                contentDiv.classList.remove("typing-cursor");
+                
+            } catch (err) {
+                console.error(err);
+                contentDiv.classList.remove("typing-cursor");
+                contentDiv.innerHTML = `<p class="text-rose-400 font-semibold flex items-center gap-1.5"><i data-lucide="alert-circle" class="h-4 w-4"></i> Error streaming response: ${err.message}</p>`;
+                lucide.createIcons();
+            } finally {
+                isGenerating = false;
+                toggleInputState(false);
+            }
+        });
+
+        // Toggle form inputs
+        function toggleInputState(disabled) {
+            userInput.disabled = disabled;
+            btnSend.disabled = disabled;
+            if (!disabled) {
+                userInput.focus();
+            }
+        }
+
+        // Render collapse sources panel in Assistant Bubble
+        function renderSourcesCitation(container, sources) {
+            if (!sources || sources.length === 0) return;
+            
+            container.innerHTML = `
+                <div class="mt-4 border-t border-darkBorder/30 pt-3 select-none">
+                    <button class="flex items-center justify-between w-full text-[10px] text-gray-500 font-bold hover:text-gray-300 transition" onclick="toggleSourcesCollapse(this)">
+                        <span class="flex items-center gap-1.5 uppercase tracking-wider">
+                            <i data-lucide="database" class="h-3 w-3"></i>
+                            Grounded Sources (${sources.length} passages matched)
+                        </span>
+                        <i data-lucide="chevron-down" class="h-3.5 w-3.5 transition-transform duration-200"></i>
+                    </button>
+                    
+                    <div class="sources-list hidden flex-col gap-2 mt-2 fade-in">
+                        ${sources.map(src => {
+                            const semanticScorePct = (src.score * 100).toFixed(0);
+                            const rerankScore = src.rerank_score.toFixed(3);
+                            const prefix = src.is_table ? "TABLE" : "TEXT";
+                            const bgBadgeColor = src.is_table ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" : "bg-brand-500/10 text-brand-400 border-brand-500/20";
+                            
+                            return `
+                                <div class="p-3 bg-darkPanel/40 border border-darkBorder/40 rounded-lg text-xs leading-relaxed text-gray-300">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[9px] font-bold px-2 py-0.5 rounded border ${bgBadgeColor}">[Source ${src.source_index}] ${prefix}</span>
+                                            ${src.header ? `<span class="text-[9px] text-gray-400 font-medium truncate max-w-[120px]">${src.header}</span>` : ''}
+                                        </div>
+                                        <div class="flex items-center gap-2 text-[9px] font-mono text-gray-500">
+                                            <span>Dense Match: ${semanticScorePct}%</span>
+                                            <span>Rerank Score: ${rerankScore}</span>
+                                        </div>
+                                    </div>
+                                    <p class="font-sans text-[11px] text-gray-400 whitespace-pre-wrap">${escapeHtml(src.content)}</p>
+                                </div>
+                            `;
+                        }).join("")}
+                    </div>
+                </div>
+            `;
+            container.classList.remove("hidden");
+            lucide.createIcons();
+        }
+
+        function toggleSourcesCollapse(button) {
+            const list = button.nextElementSibling;
+            const arrow = button.querySelector("[data-lucide='chevron-down']");
+            
+            if (list.classList.contains("hidden")) {
+                list.classList.remove("hidden");
+                list.classList.add("flex");
+                arrow.style.transform = "rotate(180deg)";
+            } else {
+                list.classList.add("hidden");
+                list.classList.remove("flex");
+                arrow.style.transform = "rotate(0deg)";
+            }
+        }
+
+        // Append message bubble to chat feed
+        function appendMessageBubble(role, content, sources = null, isLive = false) {
+            const bubble = document.createElement("div");
+            bubble.className = `flex gap-4 ${role === "user" ? "justify-end" : "justify-start"} fade-in`;
+            
+            const isUser = role === "user";
+            const cardBg = isUser ? "bg-brand-600 text-white rounded-tr-none" : "glass-card text-gray-200 rounded-tl-none";
+            const avatarHtml = isUser ? `
+                <div class="h-9 w-9 rounded-xl bg-brand-800 text-brand-300 flex items-center justify-center shrink-0 border border-brand-600/30">
+                    <i data-lucide="user" class="h-4.5 w-4.5"></i>
+                </div>
+            ` : `
+                <div class="h-9 w-9 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/15">
+                    <i data-lucide="bot" class="h-4.5 w-4.5"></i>
+                </div>
+            `;
+            
+            const parsedHtml = isUser ? escapeHtml(content) : marked.parse(content);
+            const liveCursorClass = isLive ? "typing-cursor" : "";
+            
+            bubble.innerHTML = `
+                <div class="flex gap-3 max-w-3xl ${isUser ? 'flex-row-reverse' : 'flex-row'}">
+                    ${avatarHtml}
+                    <div class="flex flex-col">
+                        <div class="px-4.5 py-3 rounded-2xl text-sm leading-relaxed border border-white/[0.02] shadow-md ${cardBg}">
+                            <div class="message-content prose max-w-none text-gray-200 ${liveCursorClass}">
+                                ${parsedHtml}
+                            </div>
+                            <div class="sources-container hidden"></div>
+                        </div>
+                        <span class="text-[9px] text-gray-500 mt-1 ${isUser ? 'text-right' : 'text-left'} px-1">
+                            ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                    </div>
+                </div>
+            `;
+            
+            chatFeed.appendChild(bubble);
+            lucide.createIcons();
+            
+            if (sources) {
+                const citeContainer = bubble.querySelector(".sources-container");
+                renderSourcesCitation(citeContainer, sources);
+            }
+            
+            if (!isUser) {
+                Prism.highlightAllUnder(bubble.querySelector(".message-content"));
+                setupCopyButtons(bubble.querySelector(".message-content"));
+            }
+            
+            return bubble;
+        }
+
+        // Setup "Copy" button inside code blocks
+        function setupCopyButtons(container) {
+            container.querySelectorAll("pre").forEach(pre => {
+                // Ensure no duplicates
+                if (pre.querySelector(".btn-copy-code")) return;
+                
+                pre.style.position = "relative";
+                const btn = document.createElement("button");
+                btn.className = "btn-copy-code absolute top-3 right-3 p-1.5 rounded bg-darkPanel/80 hover:bg-darkBorder border border-darkBorder text-gray-400 hover:text-white transition-all scale-90 opacity-0 group-hover:opacity-100 duration-200";
+                btn.title = "Copy Code";
+                btn.innerHTML = `<i data-lucide="copy" class="h-3.5 w-3.5"></i>`;
+                
+                // Add hover groups
+                pre.classList.add("group");
+                pre.appendChild(btn);
+                
+                btn.addEventListener("click", () => {
+                    const code = pre.querySelector("code").innerText;
+                    navigator.clipboard.writeText(code).then(() => {
+                        btn.innerHTML = `<i data-lucide="check" class="h-3.5 w-3.5 text-emerald-400"></i>`;
+                        lucide.createIcons();
+                        showToast("Copied", "Code snippet copied to clipboard.", "success");
+                        setTimeout(() => {
+                            btn.innerHTML = `<i data-lucide="copy" class="h-3.5 w-3.5"></i>`;
+                            lucide.createIcons();
+                        }, 2000);
+                    });
+                });
+            });
+            lucide.createIcons();
+        }
+
+        // Clear Chat History Handler
+        btnClearChat.addEventListener("click", async () => {
+            if (!activeFileId || isGenerating) return;
+            if (!confirm("Are you sure you want to wipe the conversational history for this workspace?")) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/files/${activeFileId}/clear`, { method: "POST" });
+                if (response.ok) {
+                    showToast("History Cleared", "Message logs cleared for this workspace.", "success");
+                    selectWorkspace(activeFileId, "ready");
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        // Delete File Handler
+        btnDeleteFile.addEventListener("click", async () => {
+            if (!activeFileId || isGenerating) return;
+            const file = files.find(f => f.id === activeFileId);
+            if (!file) return;
+            
+            if (!confirm(`Are you sure you want to permanently delete "${file.filename}"?\nThis will clear its conversational logs and dense database embeddings.`)) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/files/${activeFileId}`, { method: "DELETE" });
+                if (response.ok) {
+                    showToast("Document Deleted", `"${file.filename}" deleted from isolated storage.`, "success");
+                    
+                    // Reset Workspace
+                    activeFileId = null;
+                    chatHeader.classList.add("hidden");
+                    chatInputBar.classList.add("hidden");
+                    chatFeed.innerHTML = "";
+                    blankSlate.classList.remove("hidden");
+                    
+                    await fetchFiles();
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        });
+
+        // Drag and Drop File Handlers
+        function initDragAndDrop() {
+            ["dragenter", "dragover"].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add("border-brand-500/50", "bg-brand-500/[0.04]");
+                }, false);
+            });
+            
+            ["dragleave", "drop"].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove("border-brand-500/50", "bg-brand-500/[0.04]");
+                }, false);
+            });
+            
+            dropZone.addEventListener("drop", (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    handleFileUpload(files[0]);
+                }
+            });
+            
+            dropZone.addEventListener("click", () => fileInput.click());
+            fileInput.addEventListener("change", (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileUpload(e.target.files[0]);
+                }
+            });
+        }
+
+        // Upload to FastAPI endpoint
+        async function handleFileUpload(file) {
+            const formData = new FormData();
+            formData.append("file", file);
+            
+            showToast("Uploading File", `"${file.name}" is uploading to parsing pipeline.`, "info");
+            
+            try {
+                // Instantly append dummy file with status loading
+                const dummyId = "dummy-" + Date.now();
+                files.unshift({
+                    id: dummyId,
+                    filename: file.name,
+                    file_size: file.size,
+                    file_type: file.name.split(".").pop(),
+                    status: "processing",
+                    uploaded_at: new Date().toISOString()
+                });
+                renderFilesList();
+                
+                const response = await fetch(`${API_BASE}/files/upload`, {
+                    method: "POST",
+                    body: formData
+                });
+                
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || "Server indexing failed");
+                }
+                
+                const data = await response.json();
+                showToast("File Uploaded", `"${file.name}" uploaded successfully. Indexing RAG pipeline in background...`, "success");
+                
+                // Swap dummy with actual file
+                const idx = files.findIndex(f => f.id === dummyId);
+                if (idx !== -1) {
+                    files[idx] = data.file;
+                }
+                renderFilesList();
+                
+            } catch (err) {
+                console.error(err);
+                showToast("Upload Error", `Could not index document: ${err.message}`, "error");
+                fetchFiles(); // Re-sync
+            }
+        }
+
+        // Input textarea utility
+        function initTextareaAutoGrow() {
+            userInput.addEventListener("input", function() {
+                this.style.height = "auto";
+                this.style.height = (this.scrollHeight - 4) + "px";
+                if (this.value.trim() === "") {
+                    this.style.height = "38px";
+                }
+            });
+            
+            userInput.addEventListener("keydown", function(e) {
+                if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    chatForm.dispatchEvent(new Event("submit"));
+                }
+            });
+        }
+
+        // Helper utilities
+        function scrollToBottom() {
+            chatFeed.scrollTop = chatFeed.scrollHeight;
+        }
+
+        function escapeHtml(str) {
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
