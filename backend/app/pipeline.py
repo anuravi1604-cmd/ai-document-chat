@@ -10,7 +10,7 @@ from sentence_transformers import SentenceTransformer, CrossEncoder
 from rank_bm25 import BM25Okapi
 import ollama
 
-from app.config import (
+from config import (
     EMBEDDING_MODEL_NAME,
     RERANKER_MODEL_NAME,
     INDEX_DIR,
