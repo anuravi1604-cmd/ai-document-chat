@@ -483,36 +483,33 @@
                         <i data-lucide="arrow-up" class="h-4 w-4"></i>
                     </button>
                 </form>
-                <div class="max-w-4xl mx-auto flex items-center justify-between mt-2 px-1 text-[10px] text-gray-500">
-                    <span class="flex items-center gap-1"><i data-lucide="lock" class="h-3 w-3"></i> Private Context
-                        Grounding Enabled</span>
-                    <span>Press Enter to send, Shift+Enter for new line</span>
-                    <div
-                        class="max-w-4xl mx-auto flex items-center justify-between mt-2 px-1 text-[10px] text-gray-500">
-                        <span class="flex items-center gap-1">
-                            <i data-lucide="lock" class="h-3 w-3"></i>
+                <div class="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 mt-2 px-1 text-[10px] text-gray-500 select-none">
+                    <div class="flex items-center gap-3">
+                        <span class="flex items-center gap-1.5 text-brand-400 font-medium bg-brand-500/5 px-2 py-0.5 rounded-full border border-brand-500/10">
+                            <i data-lucide="lock" class="h-3 w-3 text-brand-400"></i>
                             Private Context Grounding Enabled
                         </span>
+                        <span class="hidden md:inline text-gray-600">•</span>
+                        <span class="hidden md:inline">Press Enter to send, Shift+Enter for new line</span>
+                    </div>
 
-                        <div class="flex items-center gap-2 text-[10px]">
-                            <span
-                                class="px-2 py-1 rounded bg-darkPanel border border-darkBorder hover:border-brand-500/30 cursor-pointer transition"
-                                onclick="userInput.value='Summarize this document'; userInput.focus();">
-                                Summarize
-                            </span>
-
-                            <span
-                                class="px-2 py-1 rounded bg-darkPanel border border-darkBorder hover:border-brand-500/30 cursor-pointer transition"
-                                onclick="userInput.value='Extract key insights'; userInput.focus();">
-                                Insights
-                            </span>
-
-                            <span
-                                class="px-2 py-1 rounded bg-darkPanel border border-darkBorder hover:border-brand-500/30 cursor-pointer transition"
-                                onclick="userInput.value='Generate interview questions'; userInput.focus();">
-                                Interview Qs
-                            </span>
-                        </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-gray-500/70 text-[9px] uppercase tracking-wider font-semibold">Quick Actions:</span>
+                        <span
+                            class="px-2 py-1 rounded-lg bg-darkPanel border border-darkBorder hover:border-brand-500/30 hover:text-gray-200 cursor-pointer transition-all duration-200 active:scale-95"
+                            onclick="userInput.value='Summarize this document'; userInput.dispatchEvent(new Event('input')); userInput.focus();">
+                            Summarize
+                        </span>
+                        <span
+                            class="px-2 py-1 rounded-lg bg-darkPanel border border-darkBorder hover:border-brand-500/30 hover:text-gray-200 cursor-pointer transition-all duration-200 active:scale-95"
+                            onclick="userInput.value='Extract key insights'; userInput.dispatchEvent(new Event('input')); userInput.focus();">
+                            Insights
+                        </span>
+                        <span
+                            class="px-2 py-1 rounded-lg bg-darkPanel border border-darkBorder hover:border-brand-500/30 hover:text-gray-200 cursor-pointer transition-all duration-200 active:scale-95"
+                            onclick="userInput.value='Generate interview questions'; userInput.dispatchEvent(new Event('input')); userInput.focus();">
+                            Interview Qs
+                        </span>
                     </div>
                 </div>
             </div>
