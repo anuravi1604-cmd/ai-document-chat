@@ -1,0 +1,31 @@
+Index,Query,File Name,Answer Relevancy,Faithfulness,Contextual Relevancy,Contextual Precision,Contextual Recall,Hallucination Score,Grounded Score
+1,What is the primary architectural difference between Naive RAG and Advanced RAG?,Matering RAG.pdf,1.0,0.9411764705882353,0.0,0,0.0,1.0,0.0
+2,How does cross-encoder reranking improve retrieval accuracy compared to pure bi-encoders?,Matering RAG.pdf,1.0,1.0,0.5833333333333334,1.0,0.0,0.0,1.0
+3,What are the common challenges of RAG systems regarding chunk size?,Matering RAG.pdf,1.0,1.0,0.5714285714285714,0.7000000000000001,1.0,0.0,1.0
+4,Explain what hybrid search means in a modern RAG system.,Matering RAG.pdf,1.0,1.0,0.125,1.0,0.0,1.0,0.0
+5,How does a vector database indexing process work?,Matering RAG.pdf,1.0,0.9375,0.8461538461538461,0.8333333333333333,0.0,1.0,0.0
+6,What is the role of a Judge LLM in RAG evaluation frameworks?,Matering RAG.pdf,0.3333333333333333,0.5,0.0,0,0.0,1.0,0.0
+7,What is Confident AI's DeepEval framework used for?,Matering RAG.pdf,1.0,1.0,0.0,0,0.0,1.0,0.0
+8,Define RAG Faithfulness and explain how it is measured.,Matering RAG.pdf,1.0,0.875,0.11764705882352941,0,0.5,0.0,1.0
+9,What does Context Recall measure in a retrieval pipeline?,Matering RAG.pdf,1.0,1.0,0.4782608695652174,0,1.0,0.0,1.0
+10,What is the difference between Contextual Precision and Contextual Relevancy?,Matering RAG.pdf,1.0,0.5833333333333334,0.07692307692307693,0,1.0,0.0,1.0
+11,Why is the SentenceTransformers CrossEncoder model used post-FAISS retrieval?,Matering RAG.pdf,1,1.0,0.76,1.0,1.0,1.0,0.0
+12,What is a Hallucination in a RAG context?,Matering RAG.pdf,1.0,1.0,0.5789473684210527,1.0,1.0,0.0,1.0
+13,What is the advantage of using sliding window overlap in text chunking?,Matering RAG.pdf,1.0,1.0,0.4166666666666667,0.3333333333333333,1.0,0.0,1.0
+14,How does dynamic document parsing route text-based versus scanned documents?,Matering RAG.pdf,1.0,1.0,0.42105263157894735,0.2,0.0,0.0,1.0
+15,What is BM25 and how does it score documents?,Matering RAG.pdf,0.0,1.0,0.21875,1.0,1.0,1.0,0.0
+16,What is the main topic of the paper 'Modality-aware Transformer for Financial Sentiment Analysis'?,LR_comparitive analysis_references.docx,0.0,1.0,0.2727272727272727,0.5,1.0,1.0,0.0
+17,Name the author and the focus of the paper 'Sentiment Analysis of Financial Media Commentary Text'.,LR_comparitive analysis_references.docx,0.0,1.0,0.21739130434782608,0.75,1.0,1.0,0.0
+18,What hybrid architectures are analyzed in reference 5 for stock market prediction?,LR_comparitive analysis_references.docx,0.0,1.0,0.3181818181818182,0.7,1.0,1.0,0.0
+19,Explain the significance of FinBERT in financial sentiment analysis.,LR_comparitive analysis_references.docx,0.0,1.0,0.2,0.7,1.0,1.0,0.0
+20,What model architecture does reference 9 use to model temporal financial datasets?,LR_comparitive analysis_references.docx,1.0,1.0,0.42857142857142855,1.0,1.0,0.0,1.0
+21,What is a literature review comparative analysis?,LR_comparitive analysis_references.docx,0.0,1.0,0.0,0,1.0,1.0,0.0
+22,How is financial commentary text categorized in typical sentiment models?,LR_comparitive analysis_references.docx,0.0,1.0,0.4583333333333333,0.7555555555555555,1.0,1.0,0.0
+23,Which spatial and sequence modeling architectures are frequently combined for financial forecasts?,LR_comparitive analysis_references.docx,1.0,1.0,0.8181818181818182,0.7000000000000001,1.0,0.0,1.0
+24,What role does gradient boosting (like XGBoost) play when combined with deep neural networks?,LR_comparitive analysis_references.docx,0.9411764705882353,1.0,0.38461538461538464,0.6791666666666667,1.0,0.0,1.0
+25,Why are standard generic NLP models less effective for financial text sentiment?,LR_comparitive analysis_references.docx,0.0,1.0,0.4482758620689655,0.5833333333333333,0.75,1.0,0.0
+26,What is a heterogeneous graph in the context of reference 9?,LR_comparitive analysis_references.docx,0.8333333333333334,1.0,0.04,0.7,1.0,0.0,1.0
+27,How does temporal sequence modeling capture financial news cycles?,LR_comparitive analysis_references.docx,0.8125,1.0,0.4074074074074074,1.0,1.0,0.0,1.0
+28,What does a multi-modal transformer handle in reference 1's architecture?,LR_comparitive analysis_references.docx,1.0,1.0,0.23076923076923078,1.0,1.0,0.0,1.0
+29,What are the common evaluation metrics for financial sentiment model comparison?,LR_comparitive analysis_references.docx,1.0,1.0,0.17391304347826086,0.25,1.0,0.0,1.0
+30,What does the abbreviation CNN-LSTM stand for in modern hybrid architectures?,LR_comparitive analysis_references.docx,0.8571428571428571,1.0,0.1935483870967742,0.7000000000000001,1.0,0.0,1.0
