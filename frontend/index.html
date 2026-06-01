@@ -399,6 +399,21 @@
                         </select>
                     </div>
 
+                    <!-- RAG Top K Selector -->
+                    <div
+                        class="flex items-center gap-2 bg-darkPanel border border-darkBorder/60 rounded-xl px-3 py-1.5 shadow-inner">
+                        <i data-lucide="sliders" class="h-3.5 w-3.5 text-indigo-400"></i>
+                        <span class="text-[10px] text-gray-400 font-semibold tracking-wide">Top K:</span>
+                        <select id="rag-top-k"
+                            class="bg-transparent border-0 outline-none text-xs text-gray-200 focus:ring-0 cursor-pointer pr-2">
+                            <option value="3" class="bg-darkBg">3 Sources</option>
+                            <option value="5" class="bg-darkBg" selected>5 Sources</option>
+                            <option value="8" class="bg-darkBg">8 Sources</option>
+                            <option value="10" class="bg-darkBg">10 Sources</option>
+                            <option value="15" class="bg-darkBg">15 Sources</option>
+                        </select>
+                    </div>
+
                     <!-- Custom OpenRouter Key input (hidden by default unless openrouter is selected) -->
                     <div id="openrouter-key-container" class="hidden flex items-center gap-2 bg-darkPanel border border-darkBorder/60 rounded-xl px-3.5 py-1.5 shadow-inner transition-all duration-300">
                         <i data-lucide="key" class="h-3.5 w-3.5 text-amber-400"></i>
@@ -1067,9 +1082,11 @@
             try {
                 const provider = document.getElementById("llm-provider").value;
                 const openrouterKey = document.getElementById("openrouter-key").value;
+                const topK = parseInt(document.getElementById("rag-top-k").value) || 5;
 
                 console.log("Provider:", provider);
                 console.log("Key length:", openrouterKey.length);
+                console.log("Top K:", topK);
 
                 const response = await fetch(`${API_BASE}/files/${activeFileId}/chat`, {
                     method: "POST",
@@ -1077,7 +1094,8 @@
                     body: JSON.stringify({
                         query: query,
                         provider: provider,
-                        openrouter_key: openrouterKey
+                        openrouter_key: openrouterKey,
+                        top_k: topK
                     })
                 });
 

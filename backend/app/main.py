@@ -75,6 +75,7 @@ class ChatRequest(BaseModel):
     query: str
     provider: Optional[str] = "ollama"
     openrouter_key: Optional[str] = None
+    top_k: Optional[int] = 5
 
 @app.get("/", response_class=HTMLResponse)
 def read_root():
@@ -257,12 +258,15 @@ async def chat_with_document(file_id: str, payload: ChatRequest):
         
     # 2. Retrieve top matching chunks using the hybrid FAISS + BM25 Rerank pipeline
     try:
+        top_p = payload.top_k or 5
+        top_candidates = max(15, 3 * top_p)  # dynamically scale pool
+        
         retrieved_chunks = RAGPipeline.retrieve(
             file_id=file_id,
             db_chunks=db_chunks,
             query=query,
-            top_k=15, # Semantic + keyword pooled candidates
-            top_p=5   # Rerank top outputs
+            top_k=top_candidates,
+            top_p=top_p
         )
     except FileNotFoundError as fnf:
         raise HTTPException(status_code=404, detail=str(fnf))
