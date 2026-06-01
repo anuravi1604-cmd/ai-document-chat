@@ -117,7 +117,7 @@ def lookup_file_id_in_db(filename: str):
 # ==========================================
 # 3. RAG RUNNER PIPELINE PIPELINES
 # ==========================================
-def execute_rag_pipeline(file_id: str, query: str):
+def execute_rag_pipeline(file_id: str, query: str, top_p: int = 3):
     """Programmatically queries the RAG backend, retrieving context and generating an answer."""
     # 1. Fetch file chunks from database
     db_chunks = get_file_chunks(file_id)
@@ -130,7 +130,7 @@ def execute_rag_pipeline(file_id: str, query: str):
         db_chunks=db_chunks,
         query=query,
         top_k=15,
-        top_p=5
+        top_p=top_p
     )
     
     # 3. Construct contextual prompt
@@ -158,6 +158,7 @@ def main():
     parser = argparse.ArgumentParser(description="Confident AI DeepEval RAG Evaluation Runner")
     parser.add_argument("--limit", type=int, default=None, help="Limit number of test queries evaluated for quick runs")
     parser.add_argument("--judge-model", type=str, default="openai/gpt-4o-mini", help="Model name on OpenRouter for DeepEval Judge")
+    parser.add_argument("--top-k", type=int, default=3, help="RAG context retrieval top K chunks")
     args = parser.parse_args()
 
     # Create output directory
@@ -256,7 +257,7 @@ def main():
         try:
             # A. Execute programmatically
             print("    -> Querying RAG system...")
-            rag_output = execute_rag_pipeline(case["file_id"], case["query"])
+            rag_output = execute_rag_pipeline(case["file_id"], case["query"], top_p=args.top_k)
             actual_output = rag_output["actual_output"]
             retrieved_contexts = rag_output["retrieved_contexts"]
             
