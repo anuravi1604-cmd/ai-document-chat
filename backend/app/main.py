@@ -8,8 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, HTMLResponse
 from pydantic import BaseModel
 
-from config import UPLOAD_DIR, INDEX_DIR
-from storage import (
+from backend.app.config import UPLOAD_DIR, INDEX_DIR
+from backend.app.storage import (
     init_db,
     add_file,
     update_file_status,
@@ -22,11 +22,11 @@ from storage import (
     get_session_messages,
     clear_chat_history
 )
-from pipeline import RAGPipeline
+from backend.app.pipeline import RAGPipeline
 
 app = FastAPI(
-    title="Antigravity AI Document Chat RAG Backend",
-    description="Isolated multi-file Retrieval-Augmented Generation (RAG) backend engine",
+    title="ContextIQ Enterprise RAG API",
+    description="AI-powered multi-document retrieval workspace",
     version="1.0.0"
 )
 
@@ -65,7 +65,7 @@ def process_document_in_background(file_id: str, file_path: str):
 
 def add_chunks_wrapper(file_id: str, chunks: list):
     """Auxiliary to avoid import cycles / inline storage operation."""
-    from storage import add_chunks
+    from backend.app.storage import add_chunks
     add_chunks(file_id, chunks)
 
 
@@ -73,6 +73,8 @@ def add_chunks_wrapper(file_id: str, chunks: list):
 
 class ChatRequest(BaseModel):
     query: str
+    provider: Optional[str] = "ollama"
+    openrouter_key: Optional[str] = None
 
 @app.get("/", response_class=HTMLResponse)
 def read_root():
@@ -297,7 +299,7 @@ async def chat_with_document(file_id: str, payload: ChatRequest):
         ai_response_text = ""
         try:
             # We call this in a blocking-to-async thread context if required, but inside generator is fine
-            for token in RAGPipeline.ask_ollama_stream(prompt):
+            for token in RAGPipeline.ask_ollama_stream(prompt, provider=payload.provider, openrouter_key=payload.openrouter_key):
                 ai_response_text += token
                 yield f"event: token\ndata: {json.dumps(token)}\n\n"
         except Exception as e:

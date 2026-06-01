@@ -1,5 +1,7 @@
 import os
+import json
 import pickle
+import requests
 import numpy as np
 import faiss
 from typing import List, Dict, Tuple, Any
@@ -10,10 +12,12 @@ from sentence_transformers import SentenceTransformer, CrossEncoder
 from rank_bm25 import BM25Okapi
 import ollama
 
-from config import (
+from backend.app.config import (
     EMBEDDING_MODEL_NAME,
     RERANKER_MODEL_NAME,
     INDEX_DIR,
+    OPENROUTER_API_KEY,
+    OPENROUTER_MODEL_NAME,
     OLLAMA_MODEL_NAME,
     OLLAMA_API_URL
 )
@@ -41,13 +45,92 @@ def get_reranker_model() -> CrossEncoder:
 
 # --- DOCUMENT PARSERS ---
 
+def is_garbage_text(text: str) -> bool:
+    """Detects if extracted text consists of corrupted or garbage font characters."""
+    if not text:
+        return True
+    stripped = text.strip()
+    if not stripped:
+        return True
+    # Count alphanumeric characters, standard spaces, and basic punctuation
+    normal_chars = sum(1 for c in stripped if c.isalnum() or c.isspace() or c in ".,?!'\"()-:;@_")
+    ratio = normal_chars / len(stripped)
+    return ratio < 0.70  # Less than 70% standard characters points to garbled fonts
+
 def parse_document(file_path: str) -> str:
     """Detects extension and parses PDF, DOCX, TXT or MD files into markdown representation."""
     ext = os.path.splitext(file_path)[1].lower()
     
     if ext == ".pdf":
-        print(f"Parsing PDF with Docling: {file_path}")
-        converter = DocumentConverter()
+        file_size = os.path.getsize(file_path)
+        
+        # 1. Detect if the PDF is scanned or has garbled font encodings
+        is_scanned = True
+        try:
+            import pypdf
+            with open(file_path, "rb") as f:
+                reader = pypdf.PdfReader(f)
+                total_text_len = 0
+                num_pages = len(reader.pages)
+                if num_pages > 0:
+                    # Sample first 5 pages to determine if it is scanned (fast and highly accurate check)
+                    pages_to_check = min(5, num_pages)
+                    has_garbage = False
+                    for i in range(pages_to_check):
+                        page_text = reader.pages[i].extract_text()
+                        if page_text:
+                            total_text_len += len(page_text.strip())
+                            # If extracted text is garbled/garbage, flag it immediately
+                            if is_garbage_text(page_text):
+                                has_garbage = True
+                                break
+                    
+                    # If average character count is > 50 AND no page was flagged as garbage, it is text-based
+                    if not has_garbage and (total_text_len / pages_to_check) > 50:
+                        is_scanned = False
+        except Exception as e:
+            print(f"Error checking if PDF is scanned: {e}")
+            is_scanned = True # fallback to scanned (safest) on error
+            
+        print(f"[Parser] PDF Analysis - Size: {file_size / (1024*1024):.2f}MB, Requires OCR (Scanned/Garbled): {is_scanned}")
+        
+        # 2. Route Text-based PDFs to high-speed pypdf
+
+        if not is_scanned:
+            print(f"[Parser] Parsing TEXT-BASED PDF with fast-path (pypdf): {file_path}")
+            try:
+                import pypdf
+                text_parts = []
+                with open(file_path, "rb") as f:
+                    reader = pypdf.PdfReader(f)
+                    for i, page in enumerate(reader.pages):
+                        text = page.extract_text()
+                        if text:
+                            text_parts.append(f"## Page {i+1}\n\n{text}")
+                return "\n\n".join(text_parts)
+            except Exception as e:
+                print(f"[Parser WARNING] Fast-path pypdf extraction failed, falling back to optimized Docling: {e}")
+        
+        # 3. Route Scanned PDFs or fallback through a highly optimized Docling pipeline
+        # Disabling heavy visual/table structure analysis boosts conversion speed by 5x-10x on CPU.
+        print(f"[Parser] Parsing PDF with optimized Docling pipeline. OCR Enabled: {is_scanned}")
+        from docling.datamodel.base_models import InputFormat
+        from docling.datamodel.pipeline_options import PdfPipelineOptions
+        from docling.document_converter import DocumentConverter, PdfFormatOption
+        
+        pipeline_options = PdfPipelineOptions()
+        # Enable OCR only if it is actually a scanned PDF
+        pipeline_options.do_ocr = is_scanned
+        # Turn off visual table structure extraction and page rendering (heavy CPU models)
+        pipeline_options.do_table_structure = False
+        pipeline_options.generate_page_images = False
+        pipeline_options.generate_picture_images = False
+        
+        converter = DocumentConverter(
+            format_options={
+                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
+            }
+        )
         result = converter.convert(file_path)
         markdown_text = result.document.export_to_markdown()
         return markdown_text
@@ -149,7 +232,7 @@ class RAGPipeline:
         # 2. Chunk document
         chunker = SmartChunker()
         chunks = chunker.split_text(raw_text)
-        
+
         if not chunks:
             # Create a fallback chunk if empty
             chunks = [{"content": "Empty file contents.", "metadata": {"is_table": False}}]
@@ -295,10 +378,73 @@ Format your answer with:
         return prompt
 
     @staticmethod
-    def ask_ollama_stream(prompt: str):
-        """Streams assistant response tokens directly from Mistral using local Ollama."""
+    def ask_ollama_stream(prompt: str, provider: str = "ollama", openrouter_key: str = None):
+        """Streams assistant response tokens from either OpenRouter or Local Ollama based on user preference."""
+        # 1. OpenRouter Selection
+        if provider == "openrouter":
+            active_key = (openrouter_key or "").strip() or OPENROUTER_API_KEY
+            
+            print("Provider:", provider)
+            print("Received key:", bool(openrouter_key))
+            print("Active key:", bool(active_key))
+            print("Model:", OPENROUTER_MODEL_NAME)
+
+            if not active_key:
+                yield "\n\n[ERROR: OpenRouter selected but no API Key found! Please paste your API Key in the settings panel at the top of the chat area or set the OPENROUTER_API_KEY environment variable on the server.]"
+                return
+                
+            print(f"[LLM] Directing stream request to OpenRouter model: {OPENROUTER_MODEL_NAME}")
+            headers = {
+                "Authorization": f"Bearer {active_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/anushka/Isolated-RAG-Chatbot",
+                "X-Title": "Antigravity Isolated RAG Chatbot"
+            }
+            payload = {
+                "model": OPENROUTER_MODEL_NAME,
+                "messages": [{"role": "user", "content": prompt}],
+                "stream": True
+            }
+            try:
+                response = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    stream=True,
+                    timeout=30
+                )
+                if response.status_code != 200:
+                    print("STATUS CODE:", response.status_code)
+
+                    try:
+                        print("ERROR JSON:", response.json())
+                    except Exception:
+                        print("ERROR TEXT:", response.text)
+
+                    response.raise_for_status()
+                
+                for line in response.iter_lines():
+                    if line:
+                        decoded_line = line.decode('utf-8').strip()
+                        if decoded_line.startswith('data: '):
+                            data_str = decoded_line[6:]
+                            if data_str.strip() == '[DONE]':
+                                break
+                            try:
+                                data = json.loads(data_str)
+                                token = data['choices'][0]['delta'].get('content', '')
+                                if token:
+                                    yield token
+                            except Exception:
+                                pass
+                return # Successfully streamed from OpenRouter
+            except Exception as e:
+                yield f"\n\n[ERROR: OpenRouter API call failed. Error detail: {str(e)}]"
+                return
+                
+        # 2. Local Ollama Selection
+        print(f"[LLM] Directing stream request to local Ollama model: {OLLAMA_MODEL_NAME}")
         client = ollama.Client(host=OLLAMA_API_URL)
-        
         try:
             stream = client.chat(
                 model=OLLAMA_MODEL_NAME,
@@ -310,5 +456,4 @@ Format your answer with:
                 if token:
                     yield token
         except Exception as e:
-            # Yield helpful connection or system error message
-            yield f"\n\n[ERROR: Could not stream response from Mistral. Make sure Ollama is running! Error detail: {str(e)}]"
+            yield f"\n\n[ERROR: Could not stream response from local Ollama. Make sure Ollama is running on your system! Error detail: {str(e)}]"

@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Antigravity AI | RAG Document Chat</title>
-    
+    <title>ContextIQ | Enterprise RAG Workspace</title>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -42,7 +43,9 @@
     <!-- Google Fonts & Lucide Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <!-- Markdown Parser (marked.js) -->
@@ -62,40 +65,123 @@
             background-color: #090a0f;
             color: #e2e8f0;
         }
-        
+
         /* Custom scrollbars */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
         }
+
         ::-webkit-scrollbar-track {
             background: #090a0f;
         }
+
         ::-webkit-scrollbar-thumb {
             background: #262a3a;
             border-radius: 4px;
         }
+
         ::-webkit-scrollbar-thumb:hover {
             background: #3b3f54;
         }
 
         /* Markdown Styles overriding */
-        .prose p { margin-bottom: 0.8rem; line-height: 1.6; }
-        .prose ul, .prose ol { margin-left: 1.5rem; margin-bottom: 0.8rem; list-style-type: disc; }
-        .prose ol { list-style-type: decimal; }
-        .prose code { font-family: 'JetBrains Mono', monospace; font-size: 0.85em; background: #1a1d29; padding: 0.15rem 0.3rem; border-radius: 4px; color: #f472b6; }
-        .prose pre code { background: none; padding: 0; color: inherit; }
-        .prose pre { background: #11131c; padding: 1rem; border-radius: 8px; border: 1px solid #262a3a; margin-top: 0.5rem; margin-bottom: 1rem; overflow-x: auto; font-family: 'JetBrains Mono', monospace; }
-        .prose h1, .prose h2, .prose h3 { font-weight: 600; color: #fff; margin-top: 1.2rem; margin-bottom: 0.6rem; }
-        .prose h1 { font-size: 1.5rem; }
-        .prose h2 { font-size: 1.3rem; }
-        .prose h3 { font-size: 1.1rem; }
-        .prose table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.9em; text-align: left; }
-        .prose th { background-color: #1a1d29; border: 1px solid #262a3a; padding: 8px 12px; font-weight: 600; color: #fff; }
-        .prose td { border: 1px solid #262a3a; padding: 8px 12px; }
-        .prose tr:nth-child(even) { background-color: rgba(38, 42, 58, 0.2); }
-        .prose blockquote { border-left: 4px solid #5c7aff; padding-left: 1rem; color: #94a3b8; font-style: italic; margin: 1rem 0; }
-        
+        .prose p {
+            margin-bottom: 0.8rem;
+            line-height: 1.6;
+        }
+
+        .prose ul,
+        .prose ol {
+            margin-left: 1.5rem;
+            margin-bottom: 0.8rem;
+            list-style-type: disc;
+        }
+
+        .prose ol {
+            list-style-type: decimal;
+        }
+
+        .prose code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85em;
+            background: #1a1d29;
+            padding: 0.15rem 0.3rem;
+            border-radius: 4px;
+            color: #f472b6;
+        }
+
+        .prose pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        .prose pre {
+            background: #11131c;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #262a3a;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .prose h1,
+        .prose h2,
+        .prose h3 {
+            font-weight: 600;
+            color: #fff;
+            margin-top: 1.2rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .prose h1 {
+            font-size: 1.5rem;
+        }
+
+        .prose h2 {
+            font-size: 1.3rem;
+        }
+
+        .prose h3 {
+            font-size: 1.1rem;
+        }
+
+        .prose table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: 0.9em;
+            text-align: left;
+        }
+
+        .prose th {
+            background-color: #1a1d29;
+            border: 1px solid #262a3a;
+            padding: 8px 12px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .prose td {
+            border: 1px solid #262a3a;
+            padding: 8px 12px;
+        }
+
+        .prose tr:nth-child(even) {
+            background-color: rgba(38, 42, 58, 0.2);
+        }
+
+        .prose blockquote {
+            border-left: 4px solid #5c7aff;
+            padding-left: 1rem;
+            color: #94a3b8;
+            font-style: italic;
+            margin: 1rem 0;
+        }
+
         /* Glassmorphic elements */
         .glass-panel {
             background: rgba(17, 19, 28, 0.75);
@@ -103,7 +189,7 @@
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        
+
         .glass-card {
             background: rgba(26, 29, 41, 0.5);
             backdrop-filter: blur(8px);
@@ -120,10 +206,22 @@
 
         /* Animations */
         @keyframes pulse-ring {
-            0% { transform: scale(0.95); opacity: 0.5; }
-            50% { transform: scale(1.05); opacity: 0.8; }
-            100% { transform: scale(0.95); opacity: 0.5; }
+            0% {
+                transform: scale(0.95);
+                opacity: 0.5;
+            }
+
+            50% {
+                transform: scale(1.05);
+                opacity: 0.8;
+            }
+
+            100% {
+                transform: scale(0.95);
+                opacity: 0.5;
+            }
         }
+
         .pulse-ring {
             animation: pulse-ring 2s infinite ease-in-out;
         }
@@ -131,47 +229,70 @@
         .fade-in {
             animation: fadeIn 0.3s ease-out forwards;
         }
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Streaming dot cursor */
         .typing-cursor::after {
-            content: "▊";
+            content: "▋";
             display: inline-block;
-            margin-left: 2px;
+            margin-left: 3px;
             color: #5c7aff;
-            animation: blink 0.8s infinite;
+            font-weight: 700;
+            animation: blink 0.9s infinite;
         }
+
         @keyframes blink {
-            0%, 100% { opacity: 0; }
-            50% { opacity: 1; }
+
+            0%,
+            100% {
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 1;
+            }
         }
     </style>
 </head>
+
 <body class="h-full overflow-hidden flex flex-col antialiased">
 
     <!-- TOP NAV -->
     <header class="glass-panel border-b border-darkBorder/60 px-6 py-4 flex items-center justify-between z-10 shrink-0">
         <div class="flex items-center gap-3">
-            <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
+            <div
+                class="h-9 w-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
                 <i data-lucide="zap" class="h-5 w-5 text-white"></i>
             </div>
             <div>
                 <h1 class="text-lg font-bold tracking-wide text-white flex items-center gap-2">
-                    ANTIGRAVITY <span class="bg-brand-600/20 border border-brand-500/30 text-brand-400 text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">RAG PRO</span>
+                    CONTEXTIQ <span
+                        class="bg-brand-600/20 border border-brand-500/30 text-brand-400 text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider">AI
+                        WORKSPACE</span>
                 </h1>
-                <p class="text-[11px] text-gray-400">Isolated Multi-File Document Chat System</p>
+                <p class="text-[11px] text-gray-400">Multi-Document Retrieval Platform</p>
             </div>
         </div>
-        
-        <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-medium">
+
+        <div class="flex items-center gap-4 pr-1">
+            <div
+                class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 text-xs font-medium">
                 <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                Local Engine Active
+                Private AI Engine Active
             </div>
-            <a href="https://github.com" target="_blank" class="h-9 w-9 rounded-lg hover:bg-white/5 border border-darkBorder flex items-center justify-center transition">
+            <a href="https://github.com/anuravi1604-cmd/contextiq-rag-platform" target="_blank"
+                class="h-9 w-9 rounded-lg hover:bg-brand-500/10 hover:border-brand-500/30 border border-darkBorder flex items-center justify-center transitio overflow-visible">
                 <i data-lucide="github" class="h-4 w-4 text-gray-400"></i>
             </a>
         </div>
@@ -179,19 +300,21 @@
 
     <!-- WRAPPER -->
     <div class="flex flex-1 overflow-hidden relative">
-        
+
         <!-- SIDEBAR -->
-        <aside class="w-80 border-r border-darkBorder/60 bg-darkBg flex flex-col shrink-0 overflow-hidden">
-            
+        <aside id="left-sidebar" class="w-80 bg-darkBg flex flex-col shrink-0 overflow-hidden relative border-r border-darkBorder/60 select-none" style="width: 320px;">
+
             <!-- UPLOAD PANEL -->
             <div class="p-5 border-b border-darkBorder/40">
-                <div id="drop-zone" class="border-2 border-dashed border-darkBorder hover:border-brand-500/50 rounded-xl p-6 text-center cursor-pointer bg-darkPanel/30 hover:bg-brand-500/[0.02] transition flex flex-col items-center justify-center relative group">
+                <div id="drop-zone"
+                    class="border-2 border-dashed border-darkBorder hover:border-brand-500/50 rounded-xl p-6 text-center cursor-pointer bg-darkPanel/30 hover:bg-brand-500/[0.02] transition flex flex-col items-center justify-center relative group">
                     <input type="file" id="file-input" class="hidden" accept=".pdf,.docx,.txt,.md,.markdown" />
-                    <div class="h-10 w-10 rounded-lg bg-darkBorder group-hover:bg-brand-600/10 group-hover:text-brand-400 flex items-center justify-center mb-3 transition">
+                    <div
+                        class="h-10 w-10 rounded-lg bg-darkBorder group-hover:bg-brand-600/10 group-hover:text-brand-400 flex items-center justify-center mb-3 transition">
                         <i data-lucide="upload-cloud" class="h-5 w-5 text-gray-400 group-hover:text-brand-400"></i>
                     </div>
                     <p class="text-xs font-semibold text-gray-200">Drag & drop files here</p>
-                    <p class="text-[10px] text-gray-400 mt-1">Supports PDF, DOCX, TXT, MD up to 25MB</p>
+                    <p class="text-[10px] text-gray-400 mt-1">Supports PDF, DOCX, TXT, MD up to 50MB</p>
                 </div>
             </div>
 
@@ -199,7 +322,8 @@
             <div class="px-5 py-3 border-b border-darkBorder/20">
                 <div class="relative">
                     <i data-lucide="search" class="absolute left-3 top-2.5 h-4 w-4 text-gray-400"></i>
-                    <input type="text" id="search-files" placeholder="Search uploaded documents..." class="w-full bg-darkPanel border border-darkBorder/80 rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/50 text-gray-200 placeholder-gray-500 transition" />
+                    <input type="text" id="search-files" placeholder="Search uploaded documents..."
+                        class="w-full bg-darkPanel border border-darkBorder/80 rounded-lg pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/50 text-gray-200 placeholder-gray-500 transition" />
                 </div>
             </div>
 
@@ -207,9 +331,11 @@
             <div class="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2">
                 <div class="flex items-center justify-between px-1 mb-2">
                     <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Your Documents</span>
-                    <span id="file-count" class="bg-darkBorder text-gray-400 text-[10px] font-medium px-2 py-0.5 rounded-full">0 files</span>
+                    <span id="file-count"
+                        class="bg-darkBorder text-gray-400 text-[10px] font-medium px-2 py-0.5 rounded-full">0
+                        files</span>
                 </div>
-                
+
                 <div id="files-list" class="flex flex-col gap-2">
                     <!-- Dynamic File Items go here -->
                     <div class="text-center py-8 text-gray-500">
@@ -220,28 +346,39 @@
             </div>
 
             <!-- FOOTER -->
-            <div class="p-4 border-t border-darkBorder/40 bg-darkPanel/25 flex items-center justify-between text-xs text-gray-400 shrink-0">
+            <div
+                class="p-4 border-t border-darkBorder/40 bg-darkPanel/25 flex items-center justify-between text-xs text-gray-400 shrink-0">
                 <div class="flex items-center gap-2">
                     <div class="h-5 w-5 bg-brand-600/10 text-brand-400 flex items-center justify-center rounded">
                         <i data-lucide="bot" class="h-3 w-3"></i>
                     </div>
-                    <span>Mistral 7B (Ollama)</span>
+                    <span>Hybrid RAG Engine</span>
                 </div>
                 <div class="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
             </div>
         </aside>
 
+        <!-- LEFT SIDEBAR RESIZER -->
+        <div id="left-resizer" class="absolute top-0 bottom-0 left-[320px] w-1 hover:w-1.5 hover:bg-brand-500/40 cursor-col-resize z-30 transition-all active:bg-brand-500/80 group">
+            <button id="left-collapse-btn" class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 left-1/2 h-6 w-6 rounded-full bg-darkPanel border border-darkBorder hover:border-brand-500 hover:text-brand-400 text-gray-400 flex items-center justify-center shadow-lg transition opacity-0 group-hover:opacity-100 focus:opacity-100 z-40 select-none">
+                <i data-lucide="chevron-left" class="h-3.5 w-3.5"></i>
+            </button>
+        </div>
+
         <!-- MAIN AREA -->
         <main class="flex-1 flex flex-col bg-[#0b0c13] relative overflow-hidden">
-            
+
             <!-- CHAT WORKSPACE HEADER (Hidden when no active chat) -->
-            <div id="chat-header" class="hidden glass-panel border-b border-darkBorder/50 px-6 py-4 flex items-center justify-between shrink-0">
+            <div id="chat-header"
+                class="hidden glass-panel border-b border-darkBorder/50 px-6 py-4 flex items-center justify-between shrink-0">
                 <div class="flex items-center gap-3">
-                    <div id="active-file-icon" class="h-10 w-10 rounded-lg bg-brand-600/10 text-brand-400 flex items-center justify-center border border-brand-500/20">
+                    <div id="active-file-icon"
+                        class="h-10 w-10 rounded-lg bg-brand-600/10 text-brand-400 flex items-center justify-center border border-brand-500/20">
                         <!-- Icon injected dynamically -->
                     </div>
                     <div>
-                        <h2 id="active-file-title" class="text-sm font-semibold text-white truncate max-w-md">Document Name.pdf</h2>
+                        <h2 id="active-file-title" class="text-sm font-semibold text-white truncate max-w-md">Document
+                            Name.pdf</h2>
                         <div class="flex items-center gap-2 mt-0.5">
                             <span id="active-file-size" class="text-[10px] text-gray-400">1.2 MB</span>
                             <span class="text-gray-600">•</span>
@@ -250,12 +387,37 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-2">
-                    <button id="btn-clear-chat" class="px-3 py-1.5 rounded-lg border border-darkBorder/80 hover:bg-red-500/10 hover:text-red-400 text-xs text-gray-400 font-medium flex items-center gap-1.5 transition">
+                <div class="flex items-center gap-3">
+                    <!-- LLM Provider Selector -->
+                    <div
+                        class="flex items-center gap-2 bg-darkPanel border border-darkBorder/60 rounded-xl px-3 py-1.5 shadow-inner">
+                        <i data-lucide="cpu" class="h-3.5 w-3.5 text-brand-400"></i>
+                        <select id="llm-provider"
+                            class="bg-transparent border-0 outline-none text-xs text-gray-200 focus:ring-0 cursor-pointer pr-2">
+                            <option value="ollama" class="bg-darkBg">Local Ollama</option>
+                            <option value="openrouter" class="bg-darkBg">Cloud OpenRouter</option>
+                        </select>
+                    </div>
+
+                    <!-- Custom OpenRouter Key input (hidden by default unless openrouter is selected) -->
+                    <div id="openrouter-key-container" class="hidden flex items-center gap-2 bg-darkPanel border border-darkBorder/60 rounded-xl px-3.5 py-1.5 shadow-inner transition-all duration-300">
+                        <i data-lucide="key" class="h-3.5 w-3.5 text-amber-400"></i>
+                        <input id="openrouter-key" type="password" placeholder="OpenRouter API Key..."
+                            class="bg-transparent border-0 outline-none text-xs text-gray-200 focus:ring-0 w-44 placeholder-gray-500" />
+                    </div>
+
+                    <button id="btn-export-chat"
+                        class="px-3 py-2 border border-darkBorder rounded-lg text-sm hover:bg-darkCard transition">
+                        <i data-lucide="download" class="h-4 w-4 inline mr-1"></i>
+                        Export
+                    </button>
+                    <button id="btn-clear-chat"
+                        class="px-3 py-1.5 rounded-lg border border-darkBorder/80 hover:bg-red-500/10 hover:text-red-400 text-xs text-gray-400 font-medium flex items-center gap-1.5 transition">
                         <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
                         Clear History
                     </button>
-                    <button id="btn-delete-file" class="px-3 py-1.5 rounded-lg border border-darkBorder/80 hover:bg-red-500/20 hover:text-red-400 text-xs text-gray-400 font-medium flex items-center gap-1.5 transition">
+                    <button id="btn-delete-file"
+                        class="px-3 py-1.5 rounded-lg border border-darkBorder/80 hover:bg-red-500/20 hover:text-red-400 text-xs text-gray-400 font-medium flex items-center gap-1.5 transition">
                         <i data-lucide="file-minus" class="h-3.5 w-3.5"></i>
                         Delete File
                     </button>
@@ -265,23 +427,29 @@
             <!-- CHAT BODY / MESSAGE FEED -->
             <div id="chat-feed" class="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col gap-6">
                 <!-- Welcome Blank Slate -->
-                <div id="blank-slate" class="flex-grow flex flex-col items-center justify-center text-center max-w-lg mx-auto p-8 fade-in select-none">
-                    <div class="h-16 w-16 rounded-2xl bg-gradient-to-tr from-brand-600/20 to-brand-400/10 border border-brand-500/25 flex items-center justify-center mb-6 shadow-xl shadow-brand-500/[0.03]">
+                <div id="blank-slate"
+                    class="flex-grow flex flex-col items-center justify-center text-center max-w-lg mx-auto p-8 fade-in select-none">
+                    <div
+                        class="h-16 w-16 rounded-2xl bg-gradient-to-tr from-brand-600/20 to-brand-400/10 border border-brand-500/25 flex items-center justify-center mb-6 shadow-xl shadow-brand-500/[0.03]">
                         <i data-lucide="sparkles" class="h-8 w-8 text-brand-400"></i>
                     </div>
                     <h3 class="text-xl font-bold text-white mb-2">Build Isolated AI Knowledge bases</h3>
-                    <p class="text-gray-400 text-sm mb-8 leading-relaxed">Select a document from the left sidebar to start a private, localized chat session. The AI will strictly ground its responses in your uploaded content.</p>
-                    
+                    <p class="text-gray-400 text-sm mb-8 leading-relaxed">Select a document from the left sidebar to
+                        start a private, localized chat session. The AI will strictly ground its responses in your
+                        uploaded content.</p>
+
                     <div class="grid grid-cols-2 gap-4 w-full text-left">
                         <div class="p-4 rounded-xl border border-darkBorder/50 bg-darkPanel/20">
                             <i data-lucide="shield" class="h-4.5 w-4.5 text-brand-400 mb-2"></i>
                             <h4 class="text-xs font-semibold text-gray-200">100% Isolated</h4>
-                            <p class="text-[10px] text-gray-500 mt-1">Queries strictly target context segments from the selected document.</p>
+                            <p class="text-[10px] text-gray-500 mt-1">Queries strictly target context segments from the
+                                selected document.</p>
                         </div>
                         <div class="p-4 rounded-xl border border-darkBorder/50 bg-darkPanel/20">
                             <i data-lucide="git-merge" class="h-4.5 w-4.5 text-indigo-400 mb-2"></i>
                             <h4 class="text-xs font-semibold text-gray-200">Hybrid Search + Reranker</h4>
-                            <p class="text-[10px] text-gray-500 mt-1">Combines FAISS semantic search and BM25 keywords, reranked by MiniLM.</p>
+                            <p class="text-[10px] text-gray-500 mt-1">Combines FAISS semantic search and BM25 keywords,
+                                reranked by MiniLM.</p>
                         </div>
                     </div>
                 </div>
@@ -289,19 +457,88 @@
 
             <!-- CHAT INPUT CONTAINER -->
             <div id="chat-input-bar" class="p-4 md:p-6 border-t border-darkBorder/30 bg-darkPanel/20 shrink-0 hidden">
-                <form id="chat-form" class="max-w-4xl mx-auto relative flex items-end bg-darkPanel border border-darkBorder focus-within:border-brand-500/50 focus-within:ring-1 focus-within:ring-brand-500/50 rounded-2xl p-2 pr-3 transition">
-                    <textarea id="user-input" rows="1" placeholder="Ask a question about this document..." class="flex-1 bg-transparent border-0 outline-none text-sm text-gray-200 placeholder-gray-500 px-3 py-2 resize-none max-h-32 focus:ring-0 focus:outline-none focus:border-0" style="height: 38px;"></textarea>
-                    
-                    <button type="submit" id="btn-send" class="h-9 w-9 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:bg-darkBorder disabled:text-gray-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-brand-500/10 hover:shadow-brand-500/20 active:scale-95 transition">
+                <form id="chat-form"
+                    class="max-w-4xl mx-auto relative flex items-end bg-darkPanel border border-darkBorder focus-within:border-brand-500/50 focus-within:ring-1 focus-within:ring-brand-500/50 rounded-2xl p-2 pr-3 transition">
+                    <textarea id="user-input" rows="1" placeholder="Ask a question about this document..."
+                        class="flex-1 bg-transparent border-0 outline-none text-sm text-gray-200 placeholder-gray-500 px-3 py-2 resize-none max-h-32 focus:ring-0 focus:outline-none focus:border-0"
+                        style="height: 38px;"></textarea>
+
+                    <button type="submit" id="btn-send"
+                        class="h-9 w-9 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:bg-darkBorder disabled:text-gray-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-brand-500/10 hover:shadow-brand-500/20 active:scale-95 transition">
                         <i data-lucide="arrow-up" class="h-4 w-4"></i>
                     </button>
                 </form>
                 <div class="max-w-4xl mx-auto flex items-center justify-between mt-2 px-1 text-[10px] text-gray-500">
-                    <span class="flex items-center gap-1"><i data-lucide="lock" class="h-3 w-3"></i> Private Context Grounding Enabled</span>
+                    <span class="flex items-center gap-1"><i data-lucide="lock" class="h-3 w-3"></i> Private Context
+                        Grounding Enabled</span>
                     <span>Press Enter to send, Shift+Enter for new line</span>
+                    <div
+                        class="max-w-4xl mx-auto flex items-center justify-between mt-2 px-1 text-[10px] text-gray-500">
+                        <span class="flex items-center gap-1">
+                            <i data-lucide="lock" class="h-3 w-3"></i>
+                            Private Context Grounding Enabled
+                        </span>
+
+                        <div class="flex items-center gap-2 text-[10px]">
+                            <span
+                                class="px-2 py-1 rounded bg-darkPanel border border-darkBorder hover:border-brand-500/30 cursor-pointer transition"
+                                onclick="userInput.value='Summarize this document'; userInput.focus();">
+                                Summarize
+                            </span>
+
+                            <span
+                                class="px-2 py-1 rounded bg-darkPanel border border-darkBorder hover:border-brand-500/30 cursor-pointer transition"
+                                onclick="userInput.value='Extract key insights'; userInput.focus();">
+                                Insights
+                            </span>
+
+                            <span
+                                class="px-2 py-1 rounded bg-darkPanel border border-darkBorder hover:border-brand-500/30 cursor-pointer transition"
+                                onclick="userInput.value='Generate interview questions'; userInput.focus();">
+                                Interview Qs
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
+
+
+        <!-- RIGHT SIDEBAR RESIZER -->
+        <div id="right-resizer" class="absolute top-0 bottom-0 right-[384px] w-1 hover:w-1.5 hover:bg-brand-500/40 cursor-col-resize z-30 transition-all active:bg-brand-500/80 group hidden">
+            <button id="right-collapse-btn" class="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 left-1/2 h-6 w-6 rounded-full bg-darkPanel border border-darkBorder hover:border-brand-500 hover:text-brand-400 text-gray-400 flex items-center justify-center shadow-lg transition opacity-0 group-hover:opacity-100 focus:opacity-100 z-40 select-none">
+                <i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>
+            </button>
+        </div>
+
+        <!-- RIGHT SIDEBAR (CITATIONS PANEL) -->
+        <aside id="citations-sidebar"
+            class="w-96 border-l border-darkBorder/60 bg-darkBg flex flex-col shrink-0 overflow-hidden hidden relative select-none" style="width: 384px;">
+            <!-- Sidebar Header -->
+            <div class="p-5 border-b border-darkBorder/40 bg-darkPanel/25 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="database" class="h-4.5 w-4.5 text-brand-400"></i>
+                    <div>
+                        <h3 class="text-xs font-bold text-white uppercase tracking-wider">Grounded Citations</h3>
+                        <p class="text-[10px] text-gray-400">Retrieved & Reranked Sources</p>
+                    </div>
+                </div>
+                <button id="btn-close-citations"
+                    class="text-gray-500 hover:text-gray-300 p-1 hover:bg-darkBorder/30 rounded transition"
+                    title="Close Panel">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                </button>
+            </div>
+
+            <!-- Citations List Container -->
+            <div id="citations-sidebar-content" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+                <div class="text-center py-12 text-gray-500 select-none">
+                    <i data-lucide="info" class="h-8 w-8 mx-auto mb-2 text-gray-600"></i>
+                    <p class="text-xs text-gray-400 px-4">Select a grounding link or submit a chat prompt to explore
+                        retrieved RAG sources in real-time.</p>
+                </div>
+            </div>
+        </aside>
     </div>
 
     <!-- TOAST NOTIFICATION CONTAINER -->
@@ -313,14 +550,15 @@
         let files = [];
         let activeFileId = null;
         let isGenerating = false;
-        
+        let currentSources = [];
+
         // DOM Elements
         const dropZone = document.getElementById("drop-zone");
         const fileInput = document.getElementById("file-input");
         const filesList = document.getElementById("files-list");
         const fileCount = document.getElementById("file-count");
         const searchFiles = document.getElementById("search-files");
-        
+
         const chatHeader = document.getElementById("chat-header");
         const activeFileIcon = document.getElementById("active-file-icon");
         const activeFileTitle = document.getElementById("active-file-title");
@@ -331,15 +569,157 @@
         const chatForm = document.getElementById("chat-form");
         const userInput = document.getElementById("user-input");
         const btnSend = document.getElementById("btn-send");
+        const btnExportChat = document.getElementById("btn-export-chat");
         const btnClearChat = document.getElementById("btn-clear-chat");
         const btnDeleteFile = document.getElementById("btn-delete-file");
-        
+
+        // Citations Panel Elements
+        const citationsSidebar = document.getElementById("citations-sidebar");
+        const citationsSidebarContent = document.getElementById("citations-sidebar-content");
+        const btnCloseCitations = document.getElementById("btn-close-citations");
+
+        // Resizable Sidebars State & Logic
+        let lastLeftWidth = 320;
+        let lastRightWidth = 384;
+        let leftCollapsed = false;
+        let rightCollapsed = false;
+
+        function initSidebarResizers() {
+            const leftSidebar = document.getElementById("left-sidebar");
+            const leftResizer = document.getElementById("left-resizer");
+            const leftCollapseBtn = document.getElementById("left-collapse-btn");
+
+            const rightSidebar = document.getElementById("citations-sidebar");
+            const rightResizer = document.getElementById("right-resizer");
+            const rightCollapseBtn = document.getElementById("right-collapse-btn");
+
+            let isLeftResizing = false;
+            let isRightResizing = false;
+
+            // Left Handle Drag mousedown
+            leftResizer.addEventListener("mousedown", (e) => {
+                if (e.target === leftCollapseBtn || leftCollapseBtn.contains(e.target)) return;
+                isLeftResizing = true;
+                document.body.style.cursor = "col-resize";
+                document.body.style.userSelect = "none";
+            });
+
+            // Right Handle Drag mousedown
+            rightResizer.addEventListener("mousedown", (e) => {
+                if (e.target === rightCollapseBtn || rightCollapseBtn.contains(e.target)) return;
+                isRightResizing = true;
+                document.body.style.cursor = "col-resize";
+                document.body.style.userSelect = "none";
+            });
+
+            // Drag mousemove handler
+            document.addEventListener("mousemove", (e) => {
+                if (isLeftResizing) {
+                    const newWidth = Math.max(200, Math.min(480, e.clientX));
+                    lastLeftWidth = newWidth;
+                    leftSidebar.style.width = `${newWidth}px`;
+                    leftResizer.style.left = `${newWidth}px`;
+                    leftCollapsed = false;
+                    leftSidebar.classList.remove("collapsed");
+                    updateResizerChevrons();
+                }
+                if (isRightResizing) {
+                    const wrapperWidth = document.body.clientWidth;
+                    const newWidth = Math.max(280, Math.min(600, wrapperWidth - e.clientX));
+                    lastRightWidth = newWidth;
+                    rightSidebar.style.width = `${newWidth}px`;
+                    rightResizer.style.right = `${newWidth}px`;
+                    rightCollapsed = false;
+                    rightSidebar.classList.remove("collapsed");
+                    updateResizerChevrons();
+                }
+            });
+
+            // Mouseup reset handler
+            document.addEventListener("mouseup", () => {
+                if (isLeftResizing || isRightResizing) {
+                    isLeftResizing = false;
+                    isRightResizing = false;
+                    document.body.style.cursor = "default";
+                    document.body.style.userSelect = "auto";
+                }
+            });
+
+            // Click collapse arrow Left
+            leftCollapseBtn.addEventListener("click", () => {
+                leftCollapsed = !leftCollapsed;
+                if (leftCollapsed) {
+                    leftSidebar.style.width = "0px";
+                    leftResizer.style.left = "0px";
+                    leftSidebar.classList.add("collapsed");
+                } else {
+                    leftSidebar.style.width = `${lastLeftWidth}px`;
+                    leftResizer.style.left = `${lastLeftWidth}px`;
+                    leftSidebar.classList.remove("collapsed");
+                }
+                updateResizerChevrons();
+            });
+
+            // Click collapse arrow Right
+            rightCollapseBtn.addEventListener("click", () => {
+                rightCollapsed = !rightCollapsed;
+                if (rightCollapsed) {
+                    rightSidebar.style.width = "0px";
+                    rightResizer.style.right = "0px";
+                    rightSidebar.classList.add("collapsed");
+                } else {
+                    rightSidebar.style.width = `${lastRightWidth}px`;
+                    rightResizer.style.right = `${lastRightWidth}px`;
+                    rightSidebar.classList.remove("collapsed");
+                }
+                updateResizerChevrons();
+            });
+
+            function updateResizerChevrons() {
+                leftCollapseBtn.innerHTML = leftCollapsed 
+                    ? `<i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>` 
+                    : `<i data-lucide="chevron-left" class="h-3.5 w-3.5"></i>`;
+                
+                rightCollapseBtn.innerHTML = rightCollapsed 
+                    ? `<i data-lucide="chevron-left" class="h-3.5 w-3.5"></i>` 
+                    : `<i data-lucide="chevron-right" class="h-3.5 w-3.5"></i>`;
+                
+                lucide.createIcons();
+            }
+            
+            window.updateResizerChevrons = updateResizerChevrons;
+        }
+
         // Initialize
         document.addEventListener("DOMContentLoaded", () => {
             fetchFiles();
             initDragAndDrop();
             initTextareaAutoGrow();
-            
+            initSidebarResizers();
+
+            // Close Citations Sidebar
+            if (btnCloseCitations) {
+                btnCloseCitations.addEventListener("click", () => {
+                    citationsSidebar.classList.add("hidden");
+                    document.getElementById("right-resizer").classList.add("hidden");
+                });
+            }
+
+            // Handle LLM Provider selector changes
+            const llmProvider = document.getElementById("llm-provider");
+            const openrouterKeyContainer = document.getElementById("openrouter-key-container");
+            if (llmProvider && openrouterKeyContainer) {
+                llmProvider.addEventListener("change", () => {
+                    if (llmProvider.value === "openrouter") {
+                        openrouterKeyContainer.classList.remove("hidden");
+                    } else {
+                        openrouterKeyContainer.classList.add("hidden");
+                    }
+                });
+            }
+
+
+
             // Periodically refresh list of processing files
             setInterval(pollProcessingFiles, 4000);
         });
@@ -350,10 +730,21 @@
             "docx": "file-word",
             "txt": "file-edit"
         };
-        
+
         function getFileIcon(type) {
-            const lucideName = fileIconMap[type] || "file";
-            return `<i data-lucide="${lucideName}" class="h-4.5 w-4.5"></i>`;
+            if (type === "pdf") {
+                return `<i data-lucide="file-text" class="h-4.5 w-4.5 text-rose-400"></i>`;
+            }
+
+            if (type === "docx") {
+                return `<i data-lucide="file-text" class="h-4.5 w-4.5 text-blue-400"></i>`;
+            }
+
+            if (type === "txt") {
+                return `<i data-lucide="file-edit" class="h-4.5 w-4.5 text-gray-300"></i>`;
+            }
+
+            return `<i data-lucide="file" class="h-4.5 w-4.5 text-gray-400"></i>`;
         }
 
         // Create a Toast Alert
@@ -361,7 +752,7 @@
             const container = document.getElementById("toast-container");
             const toast = document.createElement("div");
             toast.className = `glass-panel p-4 rounded-xl shadow-xl flex items-start gap-3 border border-darkBorder/80 fade-in select-none`;
-            
+
             let colorClass = "text-blue-400 bg-blue-500/10";
             let iconName = "info";
             if (type === "success") {
@@ -374,7 +765,7 @@
                 colorClass = "text-amber-400 bg-amber-500/10";
                 iconName = "alert-triangle";
             }
-            
+
             toast.innerHTML = `
                 <div class="h-8 w-8 rounded-lg ${colorClass} flex items-center justify-center shrink-0">
                     <i data-lucide="${iconName}" class="h-4.5 w-4.5"></i>
@@ -389,7 +780,7 @@
             `;
             container.appendChild(toast);
             lucide.createIcons();
-            
+
             // Auto remove after 5 seconds
             setTimeout(() => {
                 toast.classList.add("opacity-0", "translate-y-2");
@@ -415,9 +806,9 @@
         function renderFilesList() {
             const query = searchFiles.value.toLowerCase().trim();
             const filtered = files.filter(f => f.filename.toLowerCase().includes(query));
-            
+
             fileCount.innerText = `${files.length} file${files.length !== 1 ? 's' : ''}`;
-            
+
             if (filtered.length === 0) {
                 filesList.innerHTML = `
                     <div class="text-center py-8 text-gray-500">
@@ -428,16 +819,16 @@
                 lucide.createIcons();
                 return;
             }
-            
+
             filesList.innerHTML = filtered.map(file => {
                 const sizeKB = (file.file_size / 1024).toFixed(0);
                 const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
                 const isActive = file.id === activeFileId;
-                
+
                 let statusBadge = "";
                 let itemClass = "hover:bg-darkPanel border border-transparent";
                 let pointerClass = "cursor-pointer";
-                
+
                 if (file.status === "processing") {
                     statusBadge = `
                         <span class="flex items-center gap-1 text-[9px] font-semibold text-brand-400 bg-brand-500/10 px-2 py-0.5 rounded-full">
@@ -453,29 +844,47 @@
                 } else {
                     itemClass = "bg-darkPanel/40 hover:bg-darkPanel border border-darkBorder/40";
                 }
-                
+
                 return `
-                    <div onclick="selectWorkspace('${file.id}', '${file.status}')" class="p-3.5 rounded-xl transition ${pointerClass} ${itemClass} flex items-start justify-between group">
+                    <div onclick="selectWorkspace('${file.id}', '${file.status}')" 
+                        class="relative p-3.5 rounded-xl transition ${pointerClass} ${itemClass} flex items-start justify-between group">
+
+                        <!-- DELETE BUTTON -->
+                        <button 
+                            onclick="event.stopPropagation(); quickDeleteFile('${file.id}')"
+                            class="absolute top-2 right-2 opacity-100 transition text-red-400 hover:text-red-300 z-20"
+                            title="Delete Document"
+                        >
+                            <i data-lucide="trash-2" class="h-4 w-4"></i>
+                        </button>
+
                         <div class="flex items-start gap-3 min-w-0">
                             <div class="h-8.5 w-8.5 rounded-lg bg-darkBorder group-hover:bg-darkBorder flex items-center justify-center shrink-0 text-gray-400 ${isActive ? 'text-brand-400 bg-brand-500/10 border border-brand-500/10' : ''}">
                                 ${getFileIcon(file.file_type)}
                             </div>
+
                             <div class="min-w-0">
-                                <p class="text-xs font-semibold text-gray-200 truncate pr-2 group-hover:text-white transition">${file.filename}</p>
-                                <div class="flex items-center gap-1.5 mt-1">
-                                    <span class="text-[9px] text-gray-500">${sizeStr}</span>
-                                    <span class="text-gray-700 text-[9px]">•</span>
-                                    <span class="text-[9px] text-gray-500">${new Date(file.uploaded_at).toLocaleDateString()}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="shrink-0 pl-2">
-                            ${statusBadge}
+                                <p class="text-xs font-semibold text-gray-200 truncate pr-8 group-hover:text-white transition">
+                                    ${file.filename}
+                                </p>
+
+                            <div class="flex items-center gap-1.5 mt-1">
+                                <span class="text-[9px] text-gray-500">${sizeStr}</span>
+                                <span class="text-gray-700 text-[9px]">•</span>
+                                <span class="text-[9px] text-gray-500">
+                                    ${new Date(file.uploaded_at).toLocaleDateString()}
+                            </span>
                         </div>
                     </div>
-                `;
+                </div>
+
+                <div class="shrink-0 pl-2">
+                    ${statusBadge}
+                </div>
+            </div>
+        `;
             }).join("");
-            
+
             lucide.createIcons();
         }
 
@@ -486,12 +895,12 @@
         async function pollProcessingFiles() {
             const hasProcessing = files.some(f => f.status === "processing");
             if (!hasProcessing) return;
-            
+
             try {
                 const response = await fetch(`${API_BASE}/files`);
                 if (response.ok) {
                     const newFiles = await response.json();
-                    
+
                     // Check if any finished indexing to Toast it
                     newFiles.forEach(nf => {
                         const oldFile = files.find(of => of.id === nf.id);
@@ -504,7 +913,7 @@
                             showToast("Indexing Failed", `An error occurred during indexing for "${nf.filename}".`, "error");
                         }
                     });
-                    
+
                     files = newFiles;
                     renderFilesList();
                 }
@@ -519,46 +928,56 @@
                 showToast("Document Indexing", "Please wait! The Hybrid semantic indices are being constructed for this document.", "warning");
                 return;
             }
-            
+
             activeFileId = fileId;
+            citationsSidebar.classList.add("hidden");
+
+            citationsSidebarContent.innerHTML = `
+                <div class="text-center py-12 text-gray-500 select-none">
+                    <i data-lucide="info" class="h-8 w-8 mx-auto mb-2 text-gray-600"></i>
+                    <p class="text-xs text-gray-400 px-4">
+                        No sources yet. Ask a question to retrieve grounded citations.
+                    </p>
+                </div>
+            `;
             renderFilesList();
-            
+
             const file = files.find(f => f.id === fileId);
             if (!file) return;
-            
+
             // 1. Show main UI components
             blankSlate.classList.add("hidden");
             chatHeader.classList.remove("hidden");
             chatInputBar.classList.remove("hidden");
-            
+
             // 2. Load workspace metadata header
             const sizeKB = (file.file_size / 1024).toFixed(0);
             const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
-            
+
             activeFileTitle.innerText = file.filename;
             activeFileSize.innerText = sizeStr;
             activeFileIcon.innerHTML = getFileIcon(file.file_type);
             lucide.createIcons();
-            
+
             // 3. Clear existing feed and load messages
             chatFeed.innerHTML = `
                 <div class="flex-1 flex items-center justify-center py-12">
                     <span class="h-6 w-6 rounded-full border-2 border-brand-500/20 border-t-brand-500 animate-spin"></span>
                 </div>
             `;
-            
+
             try {
                 const response = await fetch(`${API_BASE}/files/${fileId}/messages`);
                 if (!response.ok) throw new Error("Could not load messages");
                 const res = await response.json();
-                
+
                 chatFeed.innerHTML = "";
-                
+
                 if (res.messages.length === 0) {
                     renderEmptyChatState(file.filename);
                 } else {
                     res.messages.forEach(msg => {
-                        appendMessageBubble(msg.role, msg.content, msg.sources, false);
+                        appendMessageBubble(msg.role, msg.content, msg.sources, false, msg.id);
                     });
                 }
                 scrollToBottom();
@@ -575,7 +994,26 @@
                         <i data-lucide="message-square" class="h-6 w-6 text-brand-400"></i>
                     </div>
                     <h4 class="text-sm font-semibold text-white">Start the conversation</h4>
-                    <p class="text-gray-400 text-xs mt-1 leading-relaxed">Ask anything about "${filename}". The retrieval pipeline will fetch source passages, score them, rerank them, and ground the assistant answer.</p>
+                    <p class="text-gray-400 text-xs mt-1 leading-relaxed mb-5">
+                        Ask anything about "${filename}". The retrieval engine will fetch relevant chunks, rerank them, and generate grounded AI responses.
+                    </p>
+
+                    <div class="flex flex-wrap items-center justify-center gap-2 mt-2">
+                        <button onclick="userInput.value='Summarize this document'; userInput.focus();"
+                            class="px-3 py-1.5 rounded-lg bg-darkPanel border border-darkBorder text-[10px] hover:border-brand-500/30 transition">
+                            Summarize Document
+                        </button>
+
+                        <button onclick="userInput.value='Extract methodologies'; userInput.focus();"
+                            class="px-3 py-1.5 rounded-lg bg-darkPanel border border-darkBorder text-[10px] hover:border-brand-500/30 transition">
+                            Extract Methodologies
+                        </button>
+
+                        <button onclick="userInput.value='Explain key findings'; userInput.focus();"
+                            class="px-3 py-1.5 rounded-lg bg-darkPanel border border-darkBorder text-[10px] hover:border-brand-500/30 transition">
+                            Explain Findings
+                        </button>
+                    </div>
                 </div>
             `;
             lucide.createIcons();
@@ -585,110 +1023,144 @@
         chatForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             if (!activeFileId || isGenerating) return;
-            
+
             const query = userInput.value.trim();
             if (!query) return;
-            
+
             // Disable input while generating
             userInput.value = "";
             userInput.style.height = "38px";
             isGenerating = true;
             toggleInputState(true);
-            
+
             // Remove empty states if present
             const slate = chatFeed.querySelector("#blank-slate") || chatFeed.querySelector(".select-none");
             if (slate) chatFeed.innerHTML = "";
-            
+
             // 1. Append User Message
             appendMessageBubble("user", query, null, false);
             scrollToBottom();
-            
+
             // 2. Setup streaming Assistant bubble
-            const assistantBubble = appendMessageBubble("assistant", "", null, true);
+            const messageId = "msg-" + Date.now();
+            const assistantBubble = appendMessageBubble("assistant", "", null, true, messageId);
             const contentDiv = assistantBubble.querySelector(".message-content");
-            const citationsDiv = assistantBubble.querySelector(".sources-container");
+
+            contentDiv.innerHTML = `
+                <div class="flex flex-col gap-2 text-sm text-gray-400">
+                    <div class="flex items-center gap-2">
+                        <span class="h-2 w-2 rounded-full bg-brand-400 animate-pulse"></span>
+                        Retrieving relevant document chunks...
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="h-2 w-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                        Running hybrid reranking pipeline...
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        Generating grounded response...
+                    </div>
+                </div>
+            `;
             scrollToBottom();
-            
+
             try {
+                const provider = document.getElementById("llm-provider").value;
+                const openrouterKey = document.getElementById("openrouter-key").value;
+
+                console.log("Provider:", provider);
+                console.log("Key length:", openrouterKey.length);
+
                 const response = await fetch(`${API_BASE}/files/${activeFileId}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ query: query })
+                    body: JSON.stringify({
+                        query: query,
+                        provider: provider,
+                        openrouter_key: openrouterKey
+                    })
                 });
-                
+
+
                 if (!response.ok) {
                     const errObj = await response.json();
                     throw new Error(errObj.detail || "Server failed to stream");
                 }
-                
+
                 // Create Reader to handle SSE chunked stream
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let accumulatedAnswer = "";
                 let buffer = "";
-                
+
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
-                    
+
                     buffer += decoder.decode(value, { stream: true });
                     const lines = buffer.split("\n");
                     buffer = lines.pop(); // keep partial trailing line
-                    
+
                     for (const line of lines) {
                         const trimmed = line.trim();
                         if (!trimmed) continue;
-                        
-                        if (trimmed.startsWith("event: sources")) {
-                            // Extract sources JSON
-                            const rawData = trimmed.replace("event: sources\ndata: ", "").replace("event: sources", "").trim();
-                            if (rawData) {
-                                try {
-                                    // Sometimes data comes on a separate line
-                                    const jsonString = rawData.substring(rawData.indexOf("data:") + 5).trim();
-                                    const sources = JSON.parse(jsonString);
-                                    renderSourcesCitation(citationsDiv, sources);
-                                } catch (e) {
-                                    // Multi-line parse fallback
-                                    console.log("Sources metadata stream buffering...");
-                                }
-                            }
-                        } else if (trimmed.startsWith("data: ")) {
+
+                        if (trimmed.startsWith("data: ")) {
                             // Try to parse token or source
                             const dataPayload = trimmed.replace("data: ", "").trim();
                             if (dataPayload === "[DONE]") {
                                 break;
                             }
-                            
+
                             try {
                                 const parsedVal = JSON.parse(dataPayload);
                                 if (Array.isArray(parsedVal)) {
-                                    // RAG sources emission
-                                    renderSourcesCitation(citationsDiv, parsedVal);
+                                    // Save the sources in global citations map
+                                    window.messageCitations = window.messageCitations || {};
+                                    window.messageCitations[messageId] = parsedVal;
+
+                                    // Render Citations badge under bubble
+                                    const badgeContainer = assistantBubble.querySelector(".citations-badge-container");
+                                    if (badgeContainer) {
+                                        badgeContainer.innerHTML = `
+                                            <button onclick="openCitationsSidebar('${messageId}')" class="px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/15 hover:bg-brand-500/20 hover:border-brand-500/30 text-[10px] font-semibold flex items-center gap-1.5 transition select-none">
+                                                <i data-lucide="database" class="h-3 w-3"></i>
+                                                <span>${parsedVal.length} Grounded Citations ↗</span>
+                                            </button>
+                                        `;
+                                        badgeContainer.classList.remove("hidden");
+                                        lucide.createIcons();
+                                    }
+
+                                    // Automatically open the citations sidebar immediately
+                                    openCitationsSidebar(messageId);
+
                                 } else if (typeof parsedVal === "string") {
                                     // Token emission
                                     accumulatedAnswer += parsedVal;
-                                    contentDiv.innerHTML = marked.parse(accumulatedAnswer);
+                                    const renderedContent = linkifyCitations(marked.parse(accumulatedAnswer), messageId);
+                                    contentDiv.innerHTML = renderedContent;
                                     Prism.highlightAllUnder(contentDiv);
-                                    
+
                                     // Enable copy code buttons
                                     setupCopyButtons(contentDiv);
-                                    
+
                                     scrollToBottom();
                                 }
                             } catch (err) {
                                 // Fallback for raw text token
                                 accumulatedAnswer += dataPayload;
-                                contentDiv.innerHTML = marked.parse(accumulatedAnswer);
+                                const renderedContent = linkifyCitations(marked.parse(accumulatedAnswer), messageId);
+                                contentDiv.innerHTML = renderedContent;
                                 scrollToBottom();
                             }
                         }
                     }
                 }
-                
+
                 // Finish streaming
                 contentDiv.classList.remove("typing-cursor");
-                
+
             } catch (err) {
                 console.error(err);
                 contentDiv.classList.remove("typing-cursor");
@@ -709,54 +1181,84 @@
             }
         }
 
-        // Render collapse sources panel in Assistant Bubble
-        function renderSourcesCitation(container, sources) {
+        // Global map storing message citations
+        window.messageCitations = window.messageCitations || {};
+
+        // Open Citations Sidebar for a specific message and render its RAG sources
+        function openCitationsSidebar(messageId) {
+            const sources = window.messageCitations[messageId];
             if (!sources || sources.length === 0) return;
-            
-            container.innerHTML = `
-                <div class="mt-4 border-t border-darkBorder/30 pt-3 select-none">
-                    <button class="flex items-center justify-between w-full text-[10px] text-gray-500 font-bold hover:text-gray-300 transition" onclick="toggleSourcesCollapse(this)">
-                        <span class="flex items-center gap-1.5 uppercase tracking-wider">
-                            <i data-lucide="database" class="h-3 w-3"></i>
-                            Grounded Sources (${sources.length} passages matched)
-                        </span>
-                        <i data-lucide="chevron-down" class="h-3.5 w-3.5 transition-transform duration-200"></i>
-                    </button>
-                    
-                    <div class="sources-list hidden flex-col gap-2 mt-2 fade-in">
-                        ${sources.map(src => {
-                            const semanticScorePct = (src.score * 100).toFixed(0);
-                            const rerankScore = src.rerank_score.toFixed(3);
-                            const prefix = src.is_table ? "TABLE" : "TEXT";
-                            const bgBadgeColor = src.is_table ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" : "bg-brand-500/10 text-brand-400 border-brand-500/20";
-                            
-                            return `
-                                <div class="p-3 bg-darkPanel/40 border border-darkBorder/40 rounded-lg text-xs leading-relaxed text-gray-300">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-[9px] font-bold px-2 py-0.5 rounded border ${bgBadgeColor}">[Source ${src.source_index}] ${prefix}</span>
-                                            ${src.header ? `<span class="text-[9px] text-gray-400 font-medium truncate max-w-[120px]">${src.header}</span>` : ''}
-                                        </div>
-                                        <div class="flex items-center gap-2 text-[9px] font-mono text-gray-500">
-                                            <span>Dense Match: ${semanticScorePct}%</span>
-                                            <span>Rerank Score: ${rerankScore}</span>
-                                        </div>
-                                    </div>
-                                    <p class="font-sans text-[11px] text-gray-400 whitespace-pre-wrap">${escapeHtml(src.content)}</p>
-                                </div>
-                            `;
-                        }).join("")}
+
+            citationsSidebar.classList.remove("hidden");
+            citationsSidebar.classList.remove("collapsed");
+            citationsSidebar.style.width = `${lastRightWidth}px`;
+
+            const rightResizer = document.getElementById("right-resizer");
+            if (rightResizer) {
+                rightResizer.classList.remove("hidden");
+                rightResizer.style.right = `${lastRightWidth}px`;
+            }
+            rightCollapsed = false;
+            if (window.updateResizerChevrons) {
+                window.updateResizerChevrons();
+            }
+
+            citationsSidebarContent.innerHTML = `
+                <div class="flex flex-col gap-3">
+                    <div class="px-1 text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1">
+                        Sources for message
                     </div>
+                    ${sources.map(src => {
+                        const semanticScorePct = (src.score * 100).toFixed(0);
+                        const rerankScore = src.rerank_score.toFixed(3);
+                        const prefix = src.is_table ? "TABLE" : "TEXT";
+                        const bgBadgeColor = src.is_table ? "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" : "bg-brand-500/10 text-brand-400 border-brand-500/20";
+
+                        return `
+                            <div id="sidebar-source-${messageId}-${src.source_index}"
+                                onclick="showSourceModal(${src.source_index})"
+                                class="p-4 bg-darkPanel/40 border border-darkBorder/40 hover:bg-darkPanel/60 hover:border-brand-500/30 rounded-xl cursor-pointer transition-all duration-300 shadow-md">
+                                
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-[9px] font-bold px-2 py-0.5 rounded border ${bgBadgeColor}">[Source ${src.source_index}] ${prefix}</span>
+                                        ${src.header ? `<span class="text-[9px] text-gray-400 font-medium truncate max-w-[120px]" title="${src.header}">${src.header}</span>` : ''}
+                                    </div>
+                                    <div class="h-6 w-6 rounded bg-darkBorder flex items-center justify-center text-gray-400 hover:text-white transition">
+                                        <i data-lucide="maximize-2" class="h-3 w-3"></i>
+                                    </div>
+                                </div>
+                                
+                                <p class="font-sans text-[11px] leading-relaxed text-gray-300">
+                                    ${escapeHtml(src.content.substring(0, 200))}${src.content.length > 200 ? '...' : ''}
+                                </p>
+                                
+                                <div class="flex items-center justify-between mt-3 pt-2 border-t border-darkBorder/20 text-[9px] font-mono text-gray-500">
+                                    <span>Dense Match: ${semanticScorePct}%</span>
+                                    <span>Rerank Score: ${rerankScore}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join("")}
                 </div>
             `;
-            container.classList.remove("hidden");
+
+            currentSources = sources;
             lucide.createIcons();
+        }
+
+        // Keep renderSourcesSidebar as a compatible wrapper for backwards compatibility
+        function renderSourcesSidebar(sources) {
+            const dummyMsgId = "current-streaming-msg";
+            window.messageCitations = window.messageCitations || {};
+            window.messageCitations[dummyMsgId] = sources;
+            openCitationsSidebar(dummyMsgId);
         }
 
         function toggleSourcesCollapse(button) {
             const list = button.nextElementSibling;
             const arrow = button.querySelector("[data-lucide='chevron-down']");
-            
+
             if (list.classList.contains("hidden")) {
                 list.classList.remove("hidden");
                 list.classList.add("flex");
@@ -768,11 +1270,40 @@
             }
         }
 
+        // Linkify citation markers like [Source 1] to interactive links
+        function linkifyCitations(htmlContent, messageId) {
+            if (!messageId) return htmlContent;
+            return htmlContent.replace(/\[Source (\d+)\]/g, (match, p1) => {
+                return `<a href="#" onclick="event.preventDefault(); highlightSource('${messageId}', ${p1})" class="px-1.5 py-0.5 rounded bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 text-brand-400 font-semibold text-[11px] transition inline-flex items-center gap-0.5" title="Click to view Source ${p1} context">${match}</a>`;
+            });
+        }
+
+        // Highlight a source in the sidebar with a gorgeous pulse animation
+        function highlightSource(messageId, sourceIndex) {
+            openCitationsSidebar(messageId);
+            
+            const sourceCard = document.getElementById(`sidebar-source-${messageId}-${sourceIndex}`);
+            if (sourceCard) {
+                sourceCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                
+                // Add high-visibility highlight styles
+                sourceCard.classList.remove("border-darkBorder/40", "bg-darkPanel/40");
+                sourceCard.classList.add("border-brand-500/80", "bg-brand-500/10", "ring-1", "ring-brand-500/50", "scale-[1.02]");
+                
+                setTimeout(() => {
+                    sourceCard.classList.remove("border-brand-500/80", "bg-brand-500/10", "ring-1", "ring-brand-500/50", "scale-[1.02]");
+                    sourceCard.classList.add("border-darkBorder/40", "bg-darkPanel/40");
+                }, 2000);
+            }
+        }
+
         // Append message bubble to chat feed
-        function appendMessageBubble(role, content, sources = null, isLive = false) {
+        function appendMessageBubble(role, content, sources = null, isLive = false, msgId = null) {
+            const messageId = msgId || ("msg-" + Date.now() + "-" + Math.random().toString(36).substr(2, 9));
             const bubble = document.createElement("div");
             bubble.className = `flex gap-4 ${role === "user" ? "justify-end" : "justify-start"} fade-in`;
-            
+            bubble.dataset.messageId = messageId;
+
             const isUser = role === "user";
             const cardBg = isUser ? "bg-brand-600 text-white rounded-tr-none" : "glass-card text-gray-200 rounded-tl-none";
             const avatarHtml = isUser ? `
@@ -784,10 +1315,32 @@
                     <i data-lucide="bot" class="h-4.5 w-4.5"></i>
                 </div>
             `;
-            
-            const parsedHtml = isUser ? escapeHtml(content) : marked.parse(content);
+
+            // Register historical sources in global map
+            if (sources && sources.length > 0) {
+                window.messageCitations = window.messageCitations || {};
+                window.messageCitations[messageId] = sources;
+            }
+
+            const parsedHtml = isUser ? escapeHtml(content) : linkifyCitations(marked.parse(content), messageId);
             const liveCursorClass = isLive ? "typing-cursor" : "";
-            
+
+            let badgeHtml = "";
+            if (!isUser) {
+                if (sources && sources.length > 0) {
+                    badgeHtml = `
+                        <div class="citations-badge-container mt-2">
+                            <button onclick="openCitationsSidebar('${messageId}')" class="px-2.5 py-1 rounded-lg bg-brand-500/10 text-brand-400 border border-brand-500/15 hover:bg-brand-500/20 hover:border-brand-500/30 text-[10px] font-semibold flex items-center gap-1.5 transition select-none">
+                                <i data-lucide="database" class="h-3 w-3"></i>
+                                <span>${sources.length} Grounded Citations ↗</span>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    badgeHtml = `<div class="citations-badge-container mt-2 ${isLive ? '' : 'hidden'}"></div>`;
+                }
+            }
+
             bubble.innerHTML = `
                 <div class="flex gap-3 max-w-3xl ${isUser ? 'flex-row-reverse' : 'flex-row'}">
                     ${avatarHtml}
@@ -796,7 +1349,7 @@
                             <div class="message-content prose max-w-none text-gray-200 ${liveCursorClass}">
                                 ${parsedHtml}
                             </div>
-                            <div class="sources-container hidden"></div>
+                            ${badgeHtml}
                         </div>
                         <span class="text-[9px] text-gray-500 mt-1 ${isUser ? 'text-right' : 'text-left'} px-1">
                             ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -804,20 +1357,15 @@
                     </div>
                 </div>
             `;
-            
+
             chatFeed.appendChild(bubble);
             lucide.createIcons();
-            
-            if (sources) {
-                const citeContainer = bubble.querySelector(".sources-container");
-                renderSourcesCitation(citeContainer, sources);
-            }
-            
+
             if (!isUser) {
                 Prism.highlightAllUnder(bubble.querySelector(".message-content"));
                 setupCopyButtons(bubble.querySelector(".message-content"));
             }
-            
+
             return bubble;
         }
 
@@ -826,17 +1374,17 @@
             container.querySelectorAll("pre").forEach(pre => {
                 // Ensure no duplicates
                 if (pre.querySelector(".btn-copy-code")) return;
-                
+
                 pre.style.position = "relative";
                 const btn = document.createElement("button");
                 btn.className = "btn-copy-code absolute top-3 right-3 p-1.5 rounded bg-darkPanel/80 hover:bg-darkBorder border border-darkBorder text-gray-400 hover:text-white transition-all scale-90 opacity-0 group-hover:opacity-100 duration-200";
                 btn.title = "Copy Code";
                 btn.innerHTML = `<i data-lucide="copy" class="h-3.5 w-3.5"></i>`;
-                
+
                 // Add hover groups
                 pre.classList.add("group");
                 pre.appendChild(btn);
-                
+
                 btn.addEventListener("click", () => {
                     const code = pre.querySelector("code").innerText;
                     navigator.clipboard.writeText(code).then(() => {
@@ -852,15 +1400,61 @@
             });
             lucide.createIcons();
         }
+        btnExportChat.addEventListener("click", exportChat);
 
+        function exportChat() {
+
+            const messages = document.querySelectorAll(
+                ".message-content"
+            );
+
+            let content = "# ContextIQ Chat Export\n\n";
+
+            const file = files.find(
+                f => f.id === activeFileId
+            );
+
+            content += `Document: ${file?.filename || "Unknown"}\n\n`;
+            content += `Generated: ${new Date().toLocaleString()}\n\n`;
+            content += "---------------------------------\n\n";
+
+            messages.forEach(msg => {
+                content += msg.innerText + "\n\n";
+            });
+
+            const blob = new Blob(
+                [content],
+                { type: "text/plain" }
+            );
+
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+
+            a.href = url;
+            a.download = `contextiq-chat-${Date.now()}.txt`;
+
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            URL.revokeObjectURL(url);
+
+            showToast(
+                "Export Complete",
+                "Chat downloaded successfully.",
+                "success"
+            );
+        }
         // Clear Chat History Handler
         btnClearChat.addEventListener("click", async () => {
             if (!activeFileId || isGenerating) return;
             if (!confirm("Are you sure you want to wipe the conversational history for this workspace?")) return;
-            
+
             try {
                 const response = await fetch(`${API_BASE}/files/${activeFileId}/clear`, { method: "POST" });
                 if (response.ok) {
+                    citationsSidebar.classList.add("hidden");
                     showToast("History Cleared", "Message logs cleared for this workspace.", "success");
                     selectWorkspace(activeFileId, "ready");
                 }
@@ -870,25 +1464,77 @@
         });
 
         // Delete File Handler
+        async function quickDeleteFile(fileId) {
+            const file = files.find(f => f.id === fileId);
+
+            if (!file) return;
+
+            if (!confirm(`Delete "${file.filename}"?`)) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/files/${fileId}`, {
+                    method: "DELETE"
+                });
+
+                if (!response.ok) {
+                    throw new Error("Delete failed");
+                }
+
+                // Reset active workspace if current file deleted
+                if (activeFileId === fileId) {
+                    activeFileId = null;
+
+                    citationsSidebar.classList.add("hidden");
+
+                    chatHeader.classList.add("hidden");
+                    chatInputBar.classList.add("hidden");
+
+                    chatFeed.innerHTML = "";
+
+                    blankSlate.classList.remove("hidden");
+                }
+
+                // Remove from local array instantly
+                files = files.filter(f => f.id !== fileId);
+
+                // Re-render sidebar
+                renderFilesList();
+
+                showToast(
+                    "Document Deleted",
+                    `"${file.filename}" removed successfully.`,
+                    "success"
+                );
+
+            } catch (err) {
+                console.error(err);
+
+                showToast(
+                    "Delete Failed",
+                    "Could not delete document.",
+                    "error"
+                );
+            }
+        }
         btnDeleteFile.addEventListener("click", async () => {
             if (!activeFileId || isGenerating) return;
             const file = files.find(f => f.id === activeFileId);
             if (!file) return;
-            
+
             if (!confirm(`Are you sure you want to permanently delete "${file.filename}"?\nThis will clear its conversational logs and dense database embeddings.`)) return;
-            
+
             try {
                 const response = await fetch(`${API_BASE}/files/${activeFileId}`, { method: "DELETE" });
                 if (response.ok) {
                     showToast("Document Deleted", `"${file.filename}" deleted from isolated storage.`, "success");
-                    
+
                     // Reset Workspace
                     activeFileId = null;
                     chatHeader.classList.add("hidden");
                     chatInputBar.classList.add("hidden");
                     chatFeed.innerHTML = "";
                     blankSlate.classList.remove("hidden");
-                    
+
                     await fetchFiles();
                 }
             } catch (err) {
@@ -904,14 +1550,14 @@
                     dropZone.classList.add("border-brand-500/50", "bg-brand-500/[0.04]");
                 }, false);
             });
-            
+
             ["dragleave", "drop"].forEach(eventName => {
                 dropZone.addEventListener(eventName, (e) => {
                     e.preventDefault();
                     dropZone.classList.remove("border-brand-500/50", "bg-brand-500/[0.04]");
                 }, false);
             });
-            
+
             dropZone.addEventListener("drop", (e) => {
                 const dt = e.dataTransfer;
                 const files = dt.files;
@@ -919,7 +1565,7 @@
                     handleFileUpload(files[0]);
                 }
             });
-            
+
             dropZone.addEventListener("click", () => fileInput.click());
             fileInput.addEventListener("change", (e) => {
                 if (e.target.files.length > 0) {
@@ -932,9 +1578,9 @@
         async function handleFileUpload(file) {
             const formData = new FormData();
             formData.append("file", file);
-            
+
             showToast("Uploading File", `"${file.name}" is uploading to parsing pipeline.`, "info");
-            
+
             try {
                 // Instantly append dummy file with status loading
                 const dummyId = "dummy-" + Date.now();
@@ -947,27 +1593,27 @@
                     uploaded_at: new Date().toISOString()
                 });
                 renderFilesList();
-                
+
                 const response = await fetch(`${API_BASE}/files/upload`, {
                     method: "POST",
                     body: formData
                 });
-                
+
                 if (!response.ok) {
                     const err = await response.json();
                     throw new Error(err.detail || "Server indexing failed");
                 }
-                
+
                 const data = await response.json();
                 showToast("File Uploaded", `"${file.name}" uploaded successfully. Indexing RAG pipeline in background...`, "success");
-                
+
                 // Swap dummy with actual file
                 const idx = files.findIndex(f => f.id === dummyId);
                 if (idx !== -1) {
                     files[idx] = data.file;
                 }
                 renderFilesList();
-                
+
             } catch (err) {
                 console.error(err);
                 showToast("Upload Error", `Could not index document: ${err.message}`, "error");
@@ -977,15 +1623,15 @@
 
         // Input textarea utility
         function initTextareaAutoGrow() {
-            userInput.addEventListener("input", function() {
+            userInput.addEventListener("input", function () {
                 this.style.height = "auto";
                 this.style.height = (this.scrollHeight - 4) + "px";
                 if (this.value.trim() === "") {
                     this.style.height = "38px";
                 }
             });
-            
-            userInput.addEventListener("keydown", function(e) {
+
+            userInput.addEventListener("keydown", function (e) {
                 if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     chatForm.dispatchEvent(new Event("submit"));
@@ -997,7 +1643,30 @@
         function scrollToBottom() {
             chatFeed.scrollTop = chatFeed.scrollHeight;
         }
+        function showSourceModal(index) {
+            const src = currentSources.find(
+                s => s.source_index === index
+            );
 
+            if (!src) return;
+
+            document.getElementById("source-modal-content").innerText =
+                src.content;
+
+            document.getElementById("source-modal")
+                .classList.remove("hidden");
+
+            document.getElementById("source-modal")
+                .classList.add("flex");
+        }
+
+        function closeSourceModal() {
+            document.getElementById("source-modal")
+                .classList.add("hidden");
+
+            document.getElementById("source-modal")
+                .classList.remove("flex");
+        }
         function escapeHtml(str) {
             return str
                 .replace(/&/g, "&amp;")
@@ -1007,5 +1676,26 @@
                 .replace(/'/g, "&#039;");
         }
     </script>
+    <div id="source-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+
+        <div class="w-[800px] max-w-[90vw] bg-darkPanel border border-darkBorder rounded-xl p-6">
+
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-white">
+                    Retrieved Source
+                </h3>
+
+                <button onclick="closeSourceModal()" class="text-gray-400 hover:text-white">
+                    ✕
+                </button>
+            </div>
+
+            <div id="source-modal-content"
+                class="max-h-[70vh] overflow-y-auto text-sm text-gray-300 whitespace-pre-wrap">
+            </div>
+
+        </div>
+    </div>
 </body>
+
 </html>
