@@ -119,8 +119,10 @@ def parse_document(file_path: str) -> str:
         from docling.document_converter import DocumentConverter, PdfFormatOption
         
         pipeline_options = PdfPipelineOptions()
-        # Enable OCR only if it is actually a scanned PDF
+        # Enable OCR only if it is actually a scanned PDF or has garbled fonts
         pipeline_options.do_ocr = is_scanned
+        # Force OCR to run on the whole page, ignoring any corrupted or garbled embedded text layers
+        pipeline_options.ocr_options.force_full_page_ocr = is_scanned
         # Turn off visual table structure extraction and page rendering (heavy CPU models)
         pipeline_options.do_table_structure = False
         pipeline_options.generate_page_images = False
