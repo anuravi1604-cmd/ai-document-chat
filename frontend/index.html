@@ -312,6 +312,14 @@
                     <p class="text-xs font-semibold text-gray-200">Drag & drop files here</p>
                     <p class="text-[10px] text-gray-400 mt-1">Supports PDF, DOCX, TXT, MD up to 50MB</p>
                 </div>
+                <!-- AUTO-OPEN OPTION -->
+                <div class="mt-3 flex items-center justify-between px-1">
+                    <span class="text-[11px] text-gray-400 font-medium">Auto-open after uploading</span>
+                    <label class="relative inline-flex items-center cursor-pointer select-none">
+                        <input type="checkbox" id="auto-open-toggle" class="sr-only peer">
+                        <div class="w-9 h-5 bg-darkBorder rounded-full peer peer-focus:ring-1 peer-focus:ring-brand-500/20 peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-400 peer-checked:after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
+                    </label>
+                </div>
             </div>
 
             <!-- SEARCH FILES -->
@@ -373,8 +381,16 @@
                         <!-- Icon injected dynamically -->
                     </div>
                     <div>
-                        <h2 id="active-file-title" class="text-sm font-semibold text-white truncate max-w-md">Document
-                            Name.pdf</h2>
+                        <div class="flex items-center gap-2">
+                            <h2 id="active-file-title" class="text-sm font-semibold text-white truncate max-w-md">Document
+                                Name.pdf</h2>
+                            <a id="active-file-open-link" href="#" target="_blank"
+                                class="text-gray-400 hover:text-brand-400 flex items-center justify-center p-0.5 rounded hover:bg-darkPanel/50 border border-transparent hover:border-darkBorder/40 transition"
+                                title="Open Original Document"
+                            >
+                                <i data-lucide="external-link" class="h-3.5 w-3.5"></i>
+                            </a>
+                        </div>
                         <div class="flex items-center gap-2 mt-0.5">
                             <span id="active-file-size" class="text-[10px] text-gray-400">1.2 MB</span>
                             <span class="text-gray-600">•</span>
@@ -559,6 +575,7 @@
         let activeFileId = null;
         let isGenerating = false;
         let currentSources = [];
+        let autoOpenOnUpload = localStorage.getItem("autoOpenOnUpload") === "true";
 
         // DOM Elements
         const dropZone = document.getElementById("drop-zone");
@@ -704,6 +721,16 @@
             initDragAndDrop();
             initTextareaAutoGrow();
             initSidebarResizers();
+
+            // Initialize Auto-Open Toggle
+            const autoOpenToggle = document.getElementById("auto-open-toggle");
+            if (autoOpenToggle) {
+                autoOpenToggle.checked = autoOpenOnUpload;
+                autoOpenToggle.addEventListener("change", (e) => {
+                    localStorage.setItem("autoOpenOnUpload", e.target.checked);
+                    autoOpenOnUpload = e.target.checked;
+                });
+            }
 
             // Close Citations Sidebar
             if (btnCloseCitations) {
@@ -857,14 +884,26 @@
                     <div onclick="selectWorkspace('${file.id}', '${file.status}')" 
                         class="relative p-3.5 rounded-xl transition ${pointerClass} ${itemClass} flex items-start justify-between group">
 
-                        <!-- DELETE BUTTON -->
-                        <button 
-                            onclick="event.stopPropagation(); quickDeleteFile('${file.id}')"
-                            class="absolute top-2 right-2 opacity-100 transition text-red-400 hover:text-red-300 z-20"
-                            title="Delete Document"
-                        >
-                            <i data-lucide="trash-2" class="h-4 w-4"></i>
-                        </button>
+                        <!-- ACTION BUTTONS (Visible on hover) -->
+                        <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition z-20">
+                            ${file.status === "ready" ? `
+                            <a 
+                                href="${API_BASE}/files/${file.id}/view" 
+                                target="_blank"
+                                onclick="event.stopPropagation();"
+                                class="h-6 w-6 rounded bg-darkPanel border border-darkBorder/60 flex items-center justify-center text-gray-400 hover:text-brand-400 hover:border-brand-500/30 transition"
+                                title="Open Original File"
+                            >
+                                <i data-lucide="external-link" class="h-3.5 w-3.5"></i>
+                            </a>` : ''}
+                            <button 
+                                onclick="event.stopPropagation(); quickDeleteFile('${file.id}')"
+                                class="h-6 w-6 rounded bg-darkPanel border border-darkBorder/60 flex items-center justify-center text-gray-400 hover:text-red-400 hover:border-red-500/30 transition"
+                                title="Delete Document"
+                            >
+                                <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
+                            </button>
+                        </div>
 
                         <div class="flex items-start gap-3 min-w-0">
                             <div class="h-8.5 w-8.5 rounded-lg bg-darkBorder group-hover:bg-darkBorder flex items-center justify-center shrink-0 text-gray-400 ${isActive ? 'text-brand-400 bg-brand-500/10 border border-brand-500/10' : ''}">
@@ -913,7 +952,7 @@
                     newFiles.forEach(nf => {
                         const oldFile = files.find(of => of.id === nf.id);
                         if (oldFile && oldFile.status === "processing" && nf.status === "ready") {
-                            showToast("Document Processed", `"${nf.filename}" has been successfully parsed, chunked, and embedded into vector db. Ready for workspace.`, "success");
+                            showToast("Document Processed", `"${nf.filename}" has been successfully parsed, chunked, and embedded into vector db. Ready for workspace.<br><a href="${API_BASE}/files/${nf.id}/view" target="_blank" class="text-brand-400 hover:underline font-semibold block mt-1.5 flex items-center gap-1"><i data-lucide="external-link" class="h-3 w-3 inline"></i> Open Original File</a>`, "success");
                             if (activeFileId === nf.id) {
                                 selectWorkspace(nf.id, "ready");
                             }
@@ -932,8 +971,8 @@
 
         // Handle Active workspace Selection
         async function selectWorkspace(fileId, status) {
-            if (status === "processing") {
-                showToast("Document Indexing", "Please wait! The Hybrid semantic indices are being constructed for this document.", "warning");
+            if (status === "error") {
+                showToast("Indexing Failed", "This document indexing has failed. Please delete and upload it again.", "error");
                 return;
             }
 
@@ -965,7 +1004,36 @@
             activeFileTitle.innerText = file.filename;
             activeFileSize.innerText = sizeStr;
             activeFileIcon.innerHTML = getFileIcon(file.file_type);
+            const activeFileOpenLink = document.getElementById("active-file-open-link");
+            if (activeFileOpenLink) {
+                activeFileOpenLink.href = `${API_BASE}/files/${fileId}/view`;
+            }
             lucide.createIcons();
+
+            if (status === "processing") {
+                // Render the indexing loader in the chatFeed
+                toggleInputState(true, true);
+                chatFeed.innerHTML = `
+                    <div class="flex-grow flex flex-col items-center justify-center text-center max-w-lg mx-auto py-12 fade-in select-none">
+                        <div class="h-12 w-12 rounded-xl bg-brand-600/10 border border-brand-500/15 flex items-center justify-center mb-4">
+                            <span class="h-6 w-6 rounded-full border-2 border-brand-500/20 border-t-brand-500 animate-spin"></span>
+                        </div>
+                        <h4 class="text-sm font-semibold text-white">Indexing Document</h4>
+                        <p class="text-gray-400 text-xs mt-2 leading-relaxed">
+                            Parsing parsing layers, chunking content, and constructing vector embeddings for "${file.filename}".<br>
+                            Workspace will automatically unlock once indexing completes.
+                        </p>
+                        <a href="${API_BASE}/files/${fileId}/view" target="_blank" class="px-4 py-2 mt-6 rounded-lg bg-darkPanel border border-darkBorder text-xs text-brand-400 hover:border-brand-500/30 transition flex items-center gap-1.5 font-semibold">
+                            <i data-lucide="external-link" class="h-4 w-4"></i> Open Original Document
+                        </a>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            // Otherwise, it is "ready"
+            toggleInputState(false);
 
             // 3. Clear existing feed and load messages
             chatFeed.innerHTML = `
@@ -1184,10 +1252,15 @@
         });
 
         // Toggle form inputs
-        function toggleInputState(disabled) {
+        function toggleInputState(disabled, isIndexing = false) {
             userInput.disabled = disabled;
             btnSend.disabled = disabled;
-            if (!disabled) {
+            if (disabled) {
+                userInput.placeholder = isIndexing ? "Document is indexing... Chat will enable shortly." : "Generating response...";
+                chatForm.classList.add("opacity-50", "cursor-not-allowed");
+            } else {
+                userInput.placeholder = "Ask a question about this document...";
+                chatForm.classList.remove("opacity-50", "cursor-not-allowed");
                 userInput.focus();
             }
         }
@@ -1571,22 +1644,74 @@
 
             dropZone.addEventListener("drop", (e) => {
                 const dt = e.dataTransfer;
-                const files = dt.files;
-                if (files.length > 0) {
-                    handleFileUpload(files[0]);
+                const filesList = dt.files;
+                if (filesList.length > 0) {
+                    const newTab = createDocViewTab();
+                    handleFileUpload(filesList[0], newTab);
                 }
             });
 
             dropZone.addEventListener("click", () => fileInput.click());
             fileInput.addEventListener("change", (e) => {
                 if (e.target.files.length > 0) {
-                    handleFileUpload(e.target.files[0]);
+                    const newTab = createDocViewTab();
+                    handleFileUpload(e.target.files[0], newTab);
                 }
             });
         }
 
+        // Helper to open document view in a new tab synchronously to bypass popup blocker
+        function createDocViewTab() {
+            if (!autoOpenOnUpload) return null;
+            const newTab = window.open("about:blank", "_blank");
+            if (newTab) {
+                newTab.document.write(`
+                    <html>
+                    <head>
+                        <title>Opening Document...</title>
+                        <style>
+                            body {
+                                background-color: #090a0f;
+                                color: #e2e8f0;
+                                font-family: 'Outfit', 'Inter', sans-serif;
+                                display: flex;
+                                flex-direction: column;
+                                align-items: center;
+                                justify-content: center;
+                                height: 100vh;
+                                margin: 0;
+                            }
+                            .loader {
+                                border: 3px solid #262a3a;
+                                border-top: 3px solid #5c7aff;
+                                border-radius: 50%;
+                                width: 36px;
+                                height: 36px;
+                                animation: spin 1s linear infinite;
+                                margin-bottom: 20px;
+                            }
+                            @keyframes spin {
+                                0% { transform: rotate(0deg); }
+                                100% { transform: rotate(360deg); }
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="loader"></div>
+                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Opening Document</div>
+                        <p style="color: #718096; font-size: 12px; margin: 0;">Please wait while the document is uploaded and prepared...</p>
+                    </body>
+                    </html>
+                `);
+                newTab.document.close();
+            } else {
+                showToast("Popup Blocked", "Please allow popups to automatically open documents after uploading.", "warning");
+            }
+            return newTab;
+        }
+
         // Upload to FastAPI endpoint
-        async function handleFileUpload(file) {
+        async function handleFileUpload(file, newTab = null) {
             const formData = new FormData();
             formData.append("file", file);
 
@@ -1616,7 +1741,12 @@
                 }
 
                 const data = await response.json();
-                showToast("File Uploaded", `"${file.name}" uploaded successfully. Indexing RAG pipeline in background...`, "success");
+                showToast("File Uploaded", `"${file.name}" uploaded successfully. Indexing RAG pipeline in background...<br><a href="${API_BASE}/files/${data.file.id}/view" target="_blank" class="text-brand-400 hover:underline font-semibold block mt-1.5 flex items-center gap-1"><i data-lucide="external-link" class="h-3 w-3 inline"></i> Open Original File</a>`, "success");
+
+                // Navigate the previously opened tab to the actual document URL
+                if (newTab) {
+                    newTab.location.href = `${API_BASE}/files/${data.file.id}/view`;
+                }
 
                 // Swap dummy with actual file
                 const idx = files.findIndex(f => f.id === dummyId);
@@ -1624,9 +1754,15 @@
                     files[idx] = data.file;
                 }
                 renderFilesList();
+                
+                // Automatically switch to the newly uploaded document's workspace
+                selectWorkspace(data.file.id, "processing");
 
             } catch (err) {
                 console.error(err);
+                if (newTab) {
+                    newTab.close();
+                }
                 showToast("Upload Error", `Could not index document: ${err.message}`, "error");
                 fetchFiles(); // Re-sync
             }

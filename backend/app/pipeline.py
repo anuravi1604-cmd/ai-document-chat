@@ -171,7 +171,7 @@ def parse_document(file_path: str) -> str:
 class SmartChunker:
     """Chunknize helper that splits documents using markdown headers and recursive constraints."""
     
-    def __init__(self, chunk_size: int = 1000, chunk_overlap: int = 200):
+    def __init__(self, chunk_size: int = 500, chunk_overlap: int = 100):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         
@@ -342,6 +342,14 @@ class RAGPipeline:
             
             # Sort by rerank score descending
             reranked_results = sorted(hybrid_results, key=lambda x: x["rerank_score"], reverse=True)[:top_p]
+            
+            # Dynamic Relative Rerank Pruning: drop chunks that are more than 4.5 logits below the top chunk's score
+            if reranked_results:
+                max_score = reranked_results[0]["rerank_score"]
+                reranked_results = [
+                    item for item in reranked_results
+                    if (max_score - item["rerank_score"]) < 4.5 or item["rerank_score"] > -4.0
+                ]
         else:
             reranked_results = hybrid_results[:top_p]
             for item in reranked_results:
@@ -441,8 +449,23 @@ Format your answer with:
                                 pass
                 return # Successfully streamed from OpenRouter
             except Exception as e:
-                yield f"\n\n[ERROR: OpenRouter API call failed. Error detail: {str(e)}]"
-                return
+                print(f"[LLM] OpenRouter call failed: {e}. Falling back to local Ollama model '{OLLAMA_MODEL_NAME}'...")
+                yield f"\n\n[System Alert: OpenRouter rate-limited. Falling back to local model '{OLLAMA_MODEL_NAME}'...]\n\n"
+                try:
+                    client = ollama.Client(host=OLLAMA_API_URL)
+                    stream = client.chat(
+                        model=OLLAMA_MODEL_NAME,
+                        messages=[{"role": "user", "content": prompt}],
+                        stream=True
+                    )
+                    for chunk in stream:
+                        token = chunk.get("message", {}).get("content", "")
+                        if token:
+                            yield token
+                    return
+                except Exception as fallback_err:
+                    yield f"\n\n[ERROR: Both OpenRouter and local Ollama fallback failed. Detail: {str(fallback_err)}]"
+                    return
                 
         # 2. Local Ollama Selection
         print(f"[LLM] Directing stream request to local Ollama model: {OLLAMA_MODEL_NAME}")
