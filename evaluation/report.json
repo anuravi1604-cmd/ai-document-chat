@@ -1,41 +1,41 @@
 {
-  "eval_timestamp": "2026-06-01 16:37:43",
+  "eval_timestamp": "2026-06-02 10:57:30",
   "evaluated_count": 2,
   "averages": {
-    "answer_relevancy": 1.0,
-    "faithfulness": 0.8928571428571428,
-    "contextual_relevancy": 0.23214285714285715,
-    "contextual_precision": 0.6666666666666666,
-    "contextual_recall": 0.625,
-    "hallucination": 0.0,
-    "grounded_score": 1.0
+    "answer_relevancy": 0.8636363636363636,
+    "faithfulness": 1.0,
+    "contextual_relevancy": 0.0,
+    "contextual_precision": 0.0,
+    "contextual_recall": 0.0,
+    "hallucination": 0.5,
+    "grounded_score": 0.5
   },
   "results": [
     {
       "index": 1,
       "query": "What is the primary architectural difference between Naive RAG and Advanced RAG?",
       "file_name": "Mastering RAG 2026.pdf",
-      "generated_answer": "The main architectural distinction lies in **how the retrieval component is integrated and controlled**:\n\n- **Naive RAG**  \n  * Uses a single, static pipeline:  \n    - Input query \u2192 **Retrieve** a fixed set of chunks (usually by cosine\u2011similarity in a vector space).  \n    - Concatenate those chunks and feed the whole text into a language model for generation.  \n  * Retrieval is always run, regardless of whether the model\u2019s internal knowledge could answer the query.  \n  * No post\u2011retrieval filtering or adaptive logic; the interface is one\u2011step.\n\n- **Advanced RAG**  \n  * Treats retrieval as a *conditional*, *adaptive* process:  \n    - The system first evaluates whether the model can answer.  \n    - If not, it decides *when* and *what to retrieve* (query rewriting, context filtering, graph traversal).  \n  * Includes additional sub\u2011components such as:  \n    - **Query rewrite** modules for precision.  \n    - **Context filtering** to prune noisy passages.  \n    - **Adaptive retrieval triggers** that conditionalise the call to an index.  \n    - **Graph\u2011based traversal** for multi\u2011step knowledge linking.  \n  * The flow can thus be multi\u2011step or skip retrieval entirely, making it more efficient and capable of deeper reasoning.\n\nIn short, **Naive RAG = single fixed retrieval \u2192 model, while Advanced RAG = multi\u2011stage, adaptive, and often graph\u2011driven retrieval that only activates when needed**.",
+      "generated_answer": "[System Alert: OpenRouter rate-limited. Falling back to local model 'mistral'...]\n\n I'm sorry for any confusion, but based on the provided contexts, there is no mention of \"Naive RAG\" or \"Advanced RAG\" in the given document. The text only discusses various types of neural network architectures such as Convolutional Neural Networks (CNNs), Recurrent Neural Networks, Unsupervised Pretrained Networks (UPNs), Auto Encoders, Deep Belief Networks (DBNs), and Generative Adversarial Networks (GANs). If you have additional context or sources that can help clarify the question, I'd be happy to try helping further. [No Source Available]",
       "expected_answer": "Naive RAG follows a straightforward retrieve-then-generate pipeline, which often suffers from precision and recall limitations. In contrast, Advanced RAG introduces pre-retrieval techniques (like query expansion, active routing, and sliding window chunking) and post-retrieval strategies (such as hybrid lexical-semantic combination, chunk filtering, and cross-encoder reranking) to improve retrieval precision and response generation accuracy.",
-      "answer_relevancy": 1.0,
-      "faithfulness": 0.7857142857142857,
+      "answer_relevancy": 0.7272727272727273,
+      "faithfulness": 1.0,
       "contextual_relevancy": 0.0,
-      "contextual_precision": 0.3333333333333333,
-      "contextual_recall": 0.75,
-      "hallucination": 0.0,
-      "grounded_score": 1.0
+      "contextual_precision": 0,
+      "contextual_recall": 0.0,
+      "hallucination": 1.0,
+      "grounded_score": 0.0
     },
     {
       "index": 2,
       "query": "How does cross-encoder reranking improve retrieval accuracy compared to pure bi-encoders?",
       "file_name": "Mastering RAG 2026.pdf",
-      "generated_answer": "Cross\u2011encoders improve retrieval accuracy over pure bi\u2011encoders by jointly encoding the query and each candidate document, allowing the model to learn fine\u2011grained interactions between the two texts.  \n\n**Key factors that give cross\u2011encoders an edge**\n\n| Aspect | Cross\u2011encoder | Bi\u2011encoder |\n|--------|---------------|------------|\n| **Interaction modelling** | Processes query\u2011document pairs together, capturing how specific query terms relate to specific document terms | Encodes query and document independently into embeddings, then matches them only via similarity in a shared space |\n| **Training objective** | Contrastive learning on large query\u2011document datasets, explicitly discriminating highly relevant from marginally relevant passages | Often trained on next\u2011sentence prediction or embedding similarity, which can be less precise for relevance ranking |\n| **Scoring granularity** | Produces a relevance score for each exact query\u2011document pair | Derives similarity from pre\u2011computed embeddings; fine\u2011grained pair\u2011wise nuances are lost |\n| **Resulting accuracy** | **Higher** relevance scoring accuracy (often reported 10\u201315\u202f% better than bi\u2011encoders in benchmark experiments) | Lower as it cannot exploit query\u2011specific context in the scoring step |\n\nBecause of these properties, cross\u2011encoders achieve superior rank\u2011ordering of candidate passages, leading to higher overall retrieval accuracy compared with systems that rely solely on bi\u2011encoder embeddings.",
+      "generated_answer": "[System Alert: OpenRouter rate-limited. Falling back to local model 'mistral'...]\n\n Cross-encoder reranking and bi-encoders are both techniques used in the field of machine learning, particularly in natural language processing tasks. However, they differ in their approach to ranking retrieved items for a given query.\n\nBi-encoders work by encoding both the query and the candidate documents separately, and then comparing the resulting vector representations [Source 1]. This comparison provides a score that reflects the similarity between the query and each document, which can be used to rank the documents.\n\nOn the other hand, cross-encoder reranking works differently. It encodes both the query and a candidate document together in one model, generating a single output vector [Source 1]. This vector represents the interaction between the query and the document. By training this model on a large dataset of relevant and irrelevant pairs, it learns to distinguish between them, allowing for more accurate reranking of retrieved documents [Source 2].\n\nThe advantage of cross-encoder reranking over pure bi-encoders lies in its ability to capture the interactive information between the query and a document, which can lead to improved retrieval accuracy. This is because it considers not just the similarity between the query and each document, but also how they interact with each other [Source 2].\n\nIn summary, cross-encoder reranking improves retrieval accuracy compared to pure bi-encoders by taking into account the interactive information between a query and a document, leading to a more nuanced understanding of relevance.",
       "expected_answer": "Pure bi-encoders encode queries and documents into separate vector spaces independently, which allows for fast L2/cosine similarity searches but misses fine-grained token-level cross-attention. Cross-encoders ingest the query and candidate chunk together, performing full attention between every token of both, yielding a much higher-fidelity relevance score that filters out non-contextual semantic matches.",
       "answer_relevancy": 1.0,
       "faithfulness": 1.0,
-      "contextual_relevancy": 0.4642857142857143,
-      "contextual_precision": 1.0,
-      "contextual_recall": 0.5,
+      "contextual_relevancy": 0.0,
+      "contextual_precision": 0,
+      "contextual_recall": 0.0,
       "hallucination": 0.0,
       "grounded_score": 1.0
     }

@@ -100,14 +100,25 @@ class OpenRouterLLM(DeepEvalBaseLLM):
 # 2. SQLITE DATABASE LOOKUP FOR RAG FILES
 # ==========================================
 def lookup_file_id_in_db(filename: str):
-    """Retrieves the file ID from SQLite database based on filename."""
+    """Retrieves the file ID from SQLite database based on filename, with extension fallbacks."""
     if not os.path.exists(DB_PATH):
         raise FileNotFoundError(f"Database not found at {DB_PATH}. Run RAG server or verify uploads first.")
         
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, status FROM files WHERE filename = ?", (filename,))
+    
+    # Try exact match first
+    cursor.execute("SELECT id, status, filename FROM files WHERE filename = ?", (filename,))
     row = cursor.fetchone()
+    
+    if not row:
+        # Fallback to any file sharing the same extension
+        ext = os.path.splitext(filename)[1].lower()
+        cursor.execute("SELECT id, status, filename FROM files WHERE filename LIKE ?", (f"%{ext}",))
+        row = cursor.fetchone()
+        if row:
+            print(f"[Evaluator DB] Filename '{filename}' not found. Falling back to matching extension file: '{row[2]}'")
+            
     conn.close()
     
     if not row:
