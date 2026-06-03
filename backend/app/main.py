@@ -5,7 +5,7 @@ import shutil
 from typing import Optional
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
 from pydantic import BaseModel
 
 from backend.app.config import UPLOAD_DIR, INDEX_DIR
@@ -154,6 +154,32 @@ def get_document_details(file_id: str):
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     return doc
+
+@app.get("/api/files/{file_id}/view")
+def view_document(file_id: str):
+    """Views the raw uploaded document in the browser or downloads it."""
+    doc = get_file(file_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+    file_path = doc.get("file_path")
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File on disk not found")
+    
+    # Detect media type based on file extension
+    ext = os.path.splitext(doc.get("filename", ""))[1].lower()
+    media_type = "application/octet-stream"
+    if ext == ".pdf":
+        media_type = "application/pdf"
+    elif ext in [".txt", ".md", ".markdown"]:
+        media_type = "text/plain"
+    elif ext == ".docx":
+        media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        
+    return FileResponse(
+        path=file_path,
+        media_type=media_type,
+        filename=doc.get("filename")
+    )
 
 @app.delete("/api/files/{file_id}")
 def delete_document(file_id: str):

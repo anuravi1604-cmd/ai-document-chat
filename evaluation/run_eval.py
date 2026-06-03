@@ -22,17 +22,32 @@ from backend.app.pipeline import RAGPipeline
 DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../backend/data/rag_chat.db"))
 
 # ==========================================
-# 1. DEEPEVAL CUSTOM JUDGE LLM WRAPPER
+# 1. DEEPEVAL JUDGE LLM WRAPPER
 # ==========================================
 from deepeval.models import DeepEvalBaseLLM
 from pydantic import BaseModel
 import requests
 
+def clean_json_output(text: str) -> str:
+    text = text.strip()
+    if text.startswith("```json"):
+        text = text[7:]
+    elif text.startswith("```"):
+        text = text[3:]
+    if text.endswith("```"):
+        text = text[:-3]
+    text = text.strip()
+    
+    first_brace = text.find('{')
+    last_brace = text.rfind('}')
+    if first_brace != -1 and last_brace != -1:
+        return text[first_brace:last_brace+1]
+    return text
+
 class OpenRouterLLM(DeepEvalBaseLLM):
-    """Custom DeepEval LLM evaluator leveraging the user's OpenRouter key with local Ollama fallback."""
-    def __init__(self, model_name="openai/gpt-4o-mini"):
+    def __init__(self, model_name="meta-llama/llama-3.3-70b-instruct:free", force_local=False):
         self.model_name = model_name
-        self.api_key = os.getenv("OPENROUTER_API_KEY")
+        self.api_key = None if force_local else os.getenv("OPENROUTER_API_KEY")
 
     def get_model_name(self):
         return self.model_name
@@ -41,15 +56,11 @@ class OpenRouterLLM(DeepEvalBaseLLM):
         return self
 
     def generate(self, prompt: str, schema: BaseModel = None) -> str:
-        if not self.api_key:
-            print("[Evaluator LLM] No OPENROUTER_API_KEY found, falling back to local Ollama...")
-            return self._fallback_ollama(prompt)
-            
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/anuravi1604-cmd/ai-document-chat",
-            "X-Title": "Antigravity DeepEval RAG Evaluator"
+            "HTTP-Referer": "https://github.com/anuravi1604-cmd",
+            "X-Title": "DeepEval"
         }
         
         payload = {
@@ -58,43 +69,47 @@ class OpenRouterLLM(DeepEvalBaseLLM):
             "temperature": 0.0
         }
         
-        # Enforce structured output if schema requested
         if schema:
             payload["response_format"] = {"type": "json_object"}
             
-        try:
-            response = requests.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=90
-            )
-            if response.status_code != 200:
-                print(f"[Evaluator LLM] OpenRouter returned status {response.status_code}. Falling back...")
-                return self._fallback_ollama(prompt)
-            
-            res_json = response.json()
-            return res_json['choices'][0]['message']['content']
-        except Exception as e:
-            print(f"[Evaluator LLM] Error calling OpenRouter: {e}. Falling back to Ollama...")
-            return self._fallback_ollama(prompt)
+        max_retries = 3
+        for attempt in range(max_retries):
+            print(f"[Evaluator LLM] Sending request to OpenRouter ({self.model_name})...")
+            try:
+                response = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=90
+                )
+                if response.status_code == 429:
+                    print(f"[Evaluator LLM] Rate limited (429). Sleeping 10s...")
+                    import time
+                    time.sleep(10)
+                    continue
+                if response.status_code != 200:
+                    print(f"[Evaluator LLM] OpenRouter returned status {response.status_code}. Retrying...")
+                    import time
+                    time.sleep(10)
+                    continue
+                
+                res_json = response.json()
+                content = res_json['choices'][0]['message']['content']
+                cleaned = clean_json_output(content) if schema else content
+                
+                # Sleep briefly if needed to avoid hard limits, though paid keys have much higher limits
+                import time
+                time.sleep(1)
+                return cleaned
+            except Exception as e:
+                print(f"[Evaluator LLM] Error: {e}. Retrying...")
+                import time
+                time.sleep(5)
+        
+        return "{}"
 
     async def a_generate(self, prompt: str, schema: BaseModel = None) -> str:
         return self.generate(prompt, schema)
-
-    def _fallback_ollama(self, prompt: str) -> str:
-        import ollama
-        try:
-            client = ollama.Client()
-            response = client.chat(
-                model="mistral",
-                messages=[{"role": "user", "content": prompt}],
-                options={"temperature": 0.0}
-            )
-            return response['message']['content']
-        except Exception as e:
-            print(f"[Evaluator LLM Fallback Error] {e}")
-            return "Failed to evaluate due to offline model connection."
 
 # ==========================================
 # 2. SQLITE DATABASE LOOKUP FOR RAG FILES
@@ -170,6 +185,7 @@ def main():
     parser.add_argument("--limit", type=int, default=None, help="Limit number of test queries evaluated for quick runs")
     parser.add_argument("--judge-model", type=str, default="openai/gpt-4o-mini", help="Model name on OpenRouter for DeepEval Judge")
     parser.add_argument("--top-k", type=int, default=3, help="RAG context retrieval top K chunks")
+    parser.add_argument("--local-judge", action="store_true", help="Force local Ollama (mistral) as DeepEval Judge instead of OpenRouter")
     args = parser.parse_args()
 
     # Create output directory
@@ -190,10 +206,25 @@ def main():
         full_dataset = json.load(f)
         
     limit = args.limit
-    test_cases = full_dataset[:limit] if limit else full_dataset
+    if limit:
+        # Group cases by source file_name to get balanced representation of all documents
+        from collections import defaultdict
+        grouped = defaultdict(list)
+        for case in full_dataset:
+            grouped[case["file_name"]].append(case)
+            
+        test_cases = []
+        cases_per_group = max(1, limit // len(grouped))
+        for g_name, g_cases in grouped.items():
+            test_cases.extend(g_cases[:cases_per_group])
+        # Trim to exact limit if it exceeded due to rounding
+        test_cases = test_cases[:limit]
+    else:
+        test_cases = full_dataset
+
     print(f"Loaded {len(full_dataset)} total test cases from test_dataset.json.")
     if limit:
-        print(f"Running in QUICK SMOKE TEST MODE: Limited to top {limit} test cases.")
+        print(f"Running in BALANCED QUICK TEST MODE: Limited to top {limit} test cases ({len(test_cases)} cases resolved).")
     else:
         print("Running in FULL EVALUATION MODE: Processing all 30 test cases.")
     
@@ -234,9 +265,12 @@ def main():
     )
     from deepeval.test_case import LLMTestCase
 
-    judge_llm = OpenRouterLLM(model_name=args.judge_model)
-    print(f"Judge LLM initialized using OpenRouter model: '{args.judge_model}'")
-
+    judge_llm = OpenRouterLLM(model_name=args.judge_model, force_local=args.local_judge)
+    if args.local_judge:
+        print("Judge LLM initialized locally")
+    else:
+        print(f"Judge LLM initialized using OpenRouter: '{args.judge_model}'")
+    
     # Instantiate 6 metrics
     ans_relevancy_metric = AnswerRelevancyMetric(threshold=0.5, model=judge_llm)
     faithfulness_metric = FaithfulnessMetric(threshold=0.5, model=judge_llm)
@@ -244,11 +278,8 @@ def main():
     ctx_precision_metric = ContextualPrecisionMetric(threshold=0.5, model=judge_llm)
     ctx_recall_metric = ContextualRecallMetric(threshold=0.5, model=judge_llm)
     hallucination_metric = HallucinationMetric(threshold=0.5, model=judge_llm)
-
-    # Dictionary to accumulate evaluation results
-    results = []
     
-    # Let's count success metrics
+    results = []
     metrics_sums = {
         "answer_relevancy": 0.0,
         "faithfulness": 0.0,
