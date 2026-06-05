@@ -1,3 +1,20 @@
 Index,Query,File Name,Answer Relevancy,Faithfulness,Contextual Relevancy,Contextual Precision,Contextual Recall,Hallucination Score,Grounded Score
-1,What is the primary architectural difference between Naive RAG and Advanced RAG?,Mastering RAG 2026.pdf,0.7272727272727273,1.0,0.0,0,0.0,1.0,0.0
-2,How does cross-encoder reranking improve retrieval accuracy compared to pure bi-encoders?,Mastering RAG 2026.pdf,1.0,1.0,0.0,0,0.0,0.0,1.0
+1,What is the title of the study mentioned in the context?,LR_comparitive analysis_references.docx,0.0,1.0,0.5555555555555556,0.5,0.5,1.0,0.0
+2,Who are the authors of the study?,LR_comparitive analysis_references.docx,0.3333333333333333,0.6666666666666666,0.7142857142857143,0.5833333333333333,0.8571428571428571,1.0,0.0
+3,In which field is the study published?,LR_comparitive analysis_references.docx,0.6,1.0,0.5,0.5,1.0,0.0,1.0
+4,What year was the study published?,LR_comparitive analysis_references.docx,1.0,1.0,0.36363636363636365,0,0.0,1.0,0.0
+5,What technique is used for feature extraction in the study?,LR_comparitive analysis_references.docx,0.0,0.5,0.5,1.0,1.0,0.0,1.0
+6,What type of networks are used for sequential learning in the study?,LR_comparitive analysis_references.docx,0.5,1.0,0.5,1.0,1.0,1.0,0.0
+7,How does the hybrid approach of the study improve predictive accuracy?,LR_comparitive analysis_references.docx,1.0,0.8888888888888888,0.7272727272727273,1.0,1.0,1.0,0.0
+8,What is the role of XGBoost in the hybrid approach?,LR_comparitive analysis_references.docx,1.0,0.3333333333333333,0.5454545454545454,1.0,1.0,1.0,0.0
+12,Which of these networks can perform more complex tasks?,DL UNIT-I.pdf,1.0,0.8,1.0,1.0,1.0,1.0,0.0
+14,What is the term used for the weight associated with each synapse in a neural network?,DL UNIT-I.pdf,1.0,0.5,0.21428571428571427,0.3333333333333333,0.5,0.0,1.0
+15,What is the term used for the output of a neuron that is passed to other neurons as input?,DL UNIT-I.pdf,1.0,0.5,0.4666666666666667,1.0,1.0,1.0,0.0
+16,What is the term used for the function that determines whether a neuron will fire or not based on its activation value and synaptic weights?,DL UNIT-I.pdf,1.0,1.0,0.6470588235294118,1.0,1.0,0.0,1.0
+17,What is the term used for the process of adjusting synaptic weights to improve the performance of the neural network?,DL UNIT-I.pdf,1.0,1.0,0.8,1.0,0.0,0.0,1.0
+18,Which type of neural network uses Backpropagation for weight adjustment?,DL UNIT-I.pdf,0.5,0.5,0.5333333333333333,0,0.5,1.0,0.0
+24,"How long does the flight last on November 10, 2024?",Instrument Time.docx,0.0,0.0,0.0,0,1.0,1.0,0.0
+27,"What time does the flight start on October 17, 2024?",Instrument Time.docx,0.0,0.5,0.0,0.4777777777777777,1.0,1.0,0.0
+28,What is Ms. Anushka Na's electronic signature date?,CT20264975522_Application_Form.pdf,1.0,1.0,0.28125,1.0,1.0,0.0,1.0
+29,Where did Ms. Anushka Na sign the document electronically?,CT20264975522_Application_Form.pdf,1.0,1.0,0.06666666666666667,1.0,1.0,0.0,1.0
+30,Does Ms. Anushka Na have any criminal cases filed or pending against her in any court of law in India or abroad?,CT20264975522_Application_Form.pdf,1.0,1.0,0.02702702702702703,1.0,0.9090909090909091,0.0,1.0

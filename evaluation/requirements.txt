@@ -1,3 +1,0 @@
-deepeval
-matplotlib
-seaborn

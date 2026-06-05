@@ -1,152 +1,182 @@
 [
   {
-    "query": "What is the title of the study mentioned in the context?",
-    "expected_output": "Stock-Price Forecasting Based on XGBoost and LSTM",
-    "file_name": "LR_comparitive analysis_references.docx"
-  },
-  {
-    "query": "Who are the authors of the study?",
-    "expected_output": "[Pham H. Vuong, Trinh T. Dat, Tieu K. Mai, Pham H. Uyen, Pham The Bao]",
-    "file_name": "LR_comparitive analysis_references.docx"
-  },
-  {
-    "query": "In which field is the study published?",
-    "expected_output": "Computer Systems Science & Engineering",
-    "file_name": "LR_comparitive analysis_references.docx"
-  },
-  {
-    "query": "What year was the study published?",
-    "expected_output": "2022",
-    "file_name": "LR_comparitive analysis_references.docx"
-  },
-  {
-    "query": "What technique is used for feature extraction in the study?",
-    "expected_output": "XGBoost",
-    "file_name": "LR_comparitive analysis_references.docx"
-  },
-  {
-    "query": "What type of networks are used for sequential learning in the study?",
-    "expected_output": "LSTM networks",
-    "file_name": "LR_comparitive analysis_references.docx"
-  },
-  {
-    "query": "How does the hybrid approach of the study improve predictive accuracy?",
-    "expected_output": "By integrating boosting-based feature selection with deep temporal modeling",
-    "file_name": "LR_comparitive analysis_references.docx"
-  },
-  {
-    "query": "What is the role of XGBoost in the hybrid approach?",
-    "expected_output": "XGBoost is used for feature extraction",
-    "file_name": "LR_comparitive analysis_references.docx"
-  },
-  {
-    "query": "What is the role of LSTM networks in the hybrid approach?",
-    "expected_output": "LSTM networks are used for sequential learning",
-    "file_name": "LR_comparitive analysis_references.docx"
-  },
-  {
-    "query": "What is the term used for a single layer of neurons?",
-    "expected_output": "Simple Neural Network",
+    "query": "How can deep neural networks help in predicting natural disasters?",
+    "expected_output": "Deep neural networks can assist in predicting natural disasters such as earthquakes, tsunamis, and cyclones by analyzing large datasets to identify patterns and signals that precede these events. This predictive capability allows for the implementation of preventive measures, ultimately aiming to save lives and mitigate the impact of these natural calamities. The process may involve techniques such as Auto Encoders to convert and process the data effectively.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
     "file_name": "DL UNIT-I.pdf"
   },
   {
-    "query": "What is the term used for a neural network with multiple layers?",
-    "expected_output": "Deep Neural Network",
+    "query": "How is Mean Squared Error (MSE) calculated?",
+    "expected_output": "Mean Squared Error (MSE) is calculated by taking the difference between the actual value and the model prediction, squaring that difference, and then averaging it across the entire dataset.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
     "file_name": "DL UNIT-I.pdf"
   },
   {
-    "query": "Which of these networks can perform more complex tasks?",
-    "expected_output": "Deep Neural Network",
+    "query": "What is the main difference between machine learning and deep learning regarding data pre-processing?",
+    "expected_output": "The main difference is that deep learning eliminates some of the data pre-processing that is typically involved with machine learning.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
     "file_name": "DL UNIT-I.pdf"
   },
   {
-    "query": "What is the term used for a neuron in a neural network?",
-    "expected_output": "Neuron",
+    "query": "What is the purpose of the Binary Step Function in neural networks?",
+    "expected_output": "The Binary Step Function is one of the simplest activation functions and is used primarily for binary classifications. It produces binary output, making it suitable for tasks where the output needs to be either one of two possible classes.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
     "file_name": "DL UNIT-I.pdf"
   },
   {
-    "query": "What is the term used for the weight associated with each synapse in a neural network?",
-    "expected_output": "Synaptic Weight",
+    "query": "What is Neural Machine Translation and how does it work?",
+    "expected_output": "Neural Machine Translation (NMT) is a state-of-the-art algorithm that utilizes deep learning to perform language translation. It operates by training a model on datasets of translated sentences, enabling it to translate between any two languages. The process involves the use of Two Recurrent Neural Networks (RNN), which are designed to handle sequential data, making them well-suited for the complexities of language translation.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
     "file_name": "DL UNIT-I.pdf"
   },
   {
-    "query": "What is the term used for the output of a neuron that is passed to other neurons as input?",
-    "expected_output": "Activation",
+    "query": "What is the Sigmoid activation function and how does it affect predictions?",
+    "expected_output": "The Sigmoid activation function, introduced in the early 1990s, is a probabilistic approach to decision making with an output range between 0 and 1. This limited range allows for more accurate predictions or decisions. The function is characterized by an S-shaped curve, which helps in mapping input values to probabilities, making it particularly useful in binary classification tasks.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
     "file_name": "DL UNIT-I.pdf"
   },
   {
-    "query": "What is the term used for the function that determines whether a neuron will fire or not based on its activation value and synaptic weights?",
-    "expected_output": "Activation Function",
+    "query": "What are the applications of Recurrent Neural Networks (RNNs)?",
+    "expected_output": "Recurrent Neural Networks (RNNs) are designed to recognize patterns in sequences of data, making them very effective for applications such as natural language processing, speech recognition, text analysis, genomic data processing, handwriting recognition, and machine translation.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
     "file_name": "DL UNIT-I.pdf"
   },
   {
-    "query": "What is the term used for the process of adjusting synaptic weights to improve the performance of the neural network?",
-    "expected_output": "Backpropagation",
+    "query": "What are some online resources for learning about deep learning?",
+    "expected_output": "Some online resources for learning about deep learning include: 1. The Deep Learning Book website: https://www.deeplearningbook.org/S 2. NPTEL's online course on deep learning: https://onlinecourses.nptel.ac.in/noc20_cs62/preview 3. A Udemy course on advanced NLP in deep learning: https://www.udemy.com/course/deep-learningadvanced-nlp/ 4. A YouTube video series on deep learning: https://www.youtube.com/watch?v=5tvmMX8r_OM&list=PLtBw6njQRUrwp57C0oIVt26ZgjG9NI",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
     "file_name": "DL UNIT-I.pdf"
   },
   {
-    "query": "Which type of neural network uses Backpropagation for weight adjustment?",
-    "expected_output": "Deep Neural Network",
+    "query": "Which country is Bkon most interested in visiting?",
+    "expected_output": "Bkon is most interested in visiting Thailand.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
     "file_name": "DL UNIT-I.pdf"
   },
   {
-    "query": "What is the aircraft type on November 10, 2024?",
-    "expected_output": "C172R",
-    "file_name": "Instrument Time.docx"
+    "query": "How does deep learning contribute to medical care in cancer detection?",
+    "expected_output": "Deep learning contributes to medical care in cancer detection by enabling the analysis of MRI images to detect cancer cells effectively. This technology provides elaborative results that assist medical professionals in diagnosing and treating cancer more accurately.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
+    "file_name": "DL UNIT-I.pdf"
   },
   {
-    "query": "What is the tail number of the aircraft on November 10, 2024?",
-    "expected_output": "N13986",
-    "file_name": "Instrument Time.docx"
+    "query": "How does the hybrid approach mentioned in the document improve model performance?",
+    "expected_output": "The hybrid approach combines interpretability from SHAP (SHapley Additive exPlanations) and sequence learning from LSTM (Long Short-Term Memory) networks. This combination allows for better understanding of model predictions while leveraging the strengths of LSTM for sequence data. Additionally, the inclusion of an XGBoost layer helps mitigate overfitting by reducing variance and enhancing generalization, which is particularly beneficial when working with limited datasets.",
+    "file_id": "f90ae035-fc10-4733-9397-0032186cdb6c",
+    "file_name": "LR_comparitive analysis_references.docx"
   },
   {
-    "query": "What is the departure airport on November 10, 2024?",
-    "expected_output": "KVRB",
-    "file_name": "Instrument Time.docx"
+    "query": "How does the CNN process video frames in real-time applications?",
+    "expected_output": "The CNN processes video frames continuously, allowing it to identify and classify objects such as other vehicles, pedestrians, traffic signs, and lanes in real-time. This dynamic processing enables the application to analyze motion and changes in the scene, rather than just classifying static images.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
+    "file_name": "DL UNIT-I.pdf"
   },
   {
-    "query": "What is the arrival airport on November 10, 2024?",
-    "expected_output": "KCOI",
-    "file_name": "Instrument Time.docx"
+    "query": "How does FinBERT improve financial prediction tasks?",
+    "expected_output": "FinBERT fine-tunes the BERT architecture on large-scale financial text corpora to produce domain-specific sentiment embeddings. These embeddings enhance financial prediction tasks when they are combined with quantitative models like LSTM or XGBoost, thereby improving the accuracy and effectiveness of predictions in the financial domain.",
+    "file_id": "f90ae035-fc10-4733-9397-0032186cdb6c",
+    "file_name": "LR_comparitive analysis_references.docx"
   },
   {
-    "query": "What time does the flight start on November 10, 2024?",
-    "expected_output": "01:00",
-    "file_name": "Instrument Time.docx"
-  },
-  {
-    "query": "How long does the flight last on November 10, 2024?",
-    "expected_output": "00:48",
-    "file_name": "Instrument Time.docx"
-  },
-  {
-    "query": "What is the aircraft type on October 17, 2024?",
-    "expected_output": "C172R",
-    "file_name": "Instrument Time.docx"
-  },
-  {
-    "query": "What is the tail number of the aircraft on October 17, 2024?",
-    "expected_output": "N10632",
-    "file_name": "Instrument Time.docx"
-  },
-  {
-    "query": "What time does the flight start on October 17, 2024?",
-    "expected_output": "00:48",
-    "file_name": "Instrument Time.docx"
-  },
-  {
-    "query": "What is Ms. Anushka Na's electronic signature date?",
-    "expected_output": "21/05/2026",
+    "query": "What are the conditions regarding academic courses and TCSL selection process attendance?",
+    "expected_output": "The conditions regarding academic courses and TCSL selection process attendance are as follows: You have completed all mentioned academic courses within the stipulated time as specified by your University/Institute and in accordance with TCSL selection guidelines, without any extended education. Additionally, you have declared any breaks in studies or work experience, as well as any pending backlogs during your academics. Furthermore, you have not attended the TCSL Selection Process in the last 6 months.",
+    "file_id": "fa0c8198-d8d9-4b27-b017-0970e9a52774",
     "file_name": "CT20264975522_Application_Form.pdf"
   },
   {
-    "query": "Where did Ms. Anushka Na sign the document electronically?",
-    "expected_output": "New Delhi",
+    "query": "What are the differences between the sigmoid and tanh activation functions in a neural network?",
+    "expected_output": "The sigmoid activation function outputs values between 0 and 1, making it suitable for binary classification problems. In contrast, the tanh activation function outputs values between -1 and 1, which can help center the data and often leads to faster convergence during training. Additionally, the gradients of the tanh function are generally steeper than those of the sigmoid function, which can result in better performance in certain scenarios.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
+    "file_name": "DL UNIT-I.pdf"
+  },
+  {
+    "query": "What skills did I learn in the Project Management Fundamentals course by Microsoft?",
+    "expected_output": "In the Project Management Fundamentals course by Microsoft, you learned project planning, scheduling, stakeholder communication, and team coordination skills.",
+    "file_id": "fa0c8198-d8d9-4b27-b017-0970e9a52774",
     "file_name": "CT20264975522_Application_Form.pdf"
   },
   {
-    "query": "Does Ms. Anushka Na have any criminal cases filed or pending against her in any court of law in India or abroad?",
-    "expected_output": "No",
+    "query": "What are the differences between the terminologies mentioned in the document?",
+    "expected_output": "The document suggests that there are specific terminologies that need clarification, and it indicates that an illustration will assist in understanding these differences. However, the exact terminologies and their distinctions are not provided in the extracted context.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
+    "file_name": "DL UNIT-I.pdf"
+  },
+  {
+    "query": "What is the purpose of the Leaky ReLU activation function?",
+    "expected_output": "The purpose of the Leaky ReLU activation function is to address the problem of neuron deactivation that occurs with the traditional ReLU function, where the gradient is 0 for negative values of x. By allowing a small linear component for negative values of x, Leaky ReLU ensures that neurons remain active and can learn during training, improving the overall performance of neural networks.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
+    "file_name": "DL UNIT-I.pdf"
+  },
+  {
+    "query": "What are the main features and use cases of the Caffe deep learning framework?",
+    "expected_output": "Caffe (Convolutional Architecture for Fast Feature Embedding) is an open source deep learning framework known for its support of various deep learning architectures, including CNN, RCNN, LSTM, and fully connected networks. It is particularly popular for image classification and segmentation tasks. Primarily written in C++, Caffe provides a modular development interface, allowing users to utilize its features without needing custom compilation for every situation.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
+    "file_name": "DL UNIT-I.pdf"
+  },
+  {
+    "query": "What are the primary uses of the Keras library?",
+    "expected_output": "The primary uses of the Keras library include classification, text generation, summarization, tagging, translation, and speech recognition, among others.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
+    "file_name": "DL UNIT-I.pdf"
+  },
+  {
+    "query": "What should I do if I have a pending disciplinary case before joining TCS?",
+    "expected_output": "If you have a pending disciplinary case before joining TCS, you should provide full particulars of the case, including details such as the nature of the case, any arrest, detention, fine, conviction, sentence, or punishment. This information is required to ensure transparency and compliance with TCS's policies.",
+    "file_id": "fa0c8198-d8d9-4b27-b017-0970e9a52774",
     "file_name": "CT20264975522_Application_Form.pdf"
+  },
+  {
+    "query": "What significant contributions did Frank Rosenblatt and Alexey Ivakhnenko make to the field of neural networks?",
+    "expected_output": "Frank Rosenblatt contributed to the field of neural networks in 1957 by submitting a paper titled \u2018The Perceptron: A Perceiving and Recognizing Automaton\u2019, which introduced an algorithm for pattern recognition using a two-layer neural network. Later, in 1965, Alexey Ivakhnenko and V.G. Lapa developed the first working neural network, and Ivakhnenko further advanced the field by creating an 8-layer deep neural network in 1971, which was demonstrated in the computer identification system called Alpha. This work marked the actual introduction to deep learning.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
+    "file_name": "DL UNIT-I.pdf"
+  },
+  {
+    "query": "How do Transformer models apply to financial time-series forecasting in asset management?",
+    "expected_output": "Transformer models, specifically encoder-decoder architectures, are utilized for multi-step financial time-series forecasting by enabling the prediction of future asset prices and trends. The authors, Edmond Lezmi and Jiali Xu, highlight their application in portfolio optimization, which involves selecting the best asset mix to maximize returns while managing risk, and in volatility estimation, which assesses the degree of variation in asset prices over time. These capabilities make Transformer models valuable tools in the field of asset management.",
+    "file_id": "f90ae035-fc10-4733-9397-0032186cdb6c",
+    "file_name": "LR_comparitive analysis_references.docx"
+  },
+  {
+    "query": "What does Adagrad stand for and how is it used in optimization?",
+    "expected_output": "Adagrad stands for Adaptive Gradient Optimizer. It is used to reduce the loss function with respect to the weights during the optimization process.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
+    "file_name": "DL UNIT-I.pdf"
+  },
+  {
+    "query": "What is a major drawback of using the sigmoid function in deep neural networks?",
+    "expected_output": "A major drawback of using the sigmoid function in deep neural networks is the lack of weight updating, which can result in the function returning small output values. This leads to no changes in the weights and biases, causing the vanishing gradient problem. This issue is particularly prevalent in large deep neural networks, resulting in increased computational costs and poor learning performance.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
+    "file_name": "DL UNIT-I.pdf"
+  },
+  {
+    "query": "What are the basic components of neural networks?",
+    "expected_output": "The basic components of neural networks include the perceptron, which is the fundamental building block, activation functions such as Sigmoid, ReLU, and tanh, and the back propagation algorithm, which is used to train neural networks.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
+    "file_name": "DL UNIT-I.pdf"
+  },
+  {
+    "query": "How does the study improve predictive accuracy in stock-price forecasting?",
+    "expected_output": "The study improves predictive accuracy by combining XGBoost for feature extraction with LSTM networks for sequential learning. This hybrid approach integrates boosting-based feature selection with deep temporal modeling, which enhances the overall forecasting performance.",
+    "file_id": "f90ae035-fc10-4733-9397-0032186cdb6c",
+    "file_name": "LR_comparitive analysis_references.docx"
+  },
+  {
+    "query": "What are some recent studies on financial time series forecasting?",
+    "expected_output": "Recent studies on financial time series forecasting include H. Emami Gohari, M. Babaie, and A. Yazdani's work titled 'Modality-aware Transformer for Financial Time Series Forecasting,' presented at the ACM International Conference on Artificial Intelligence and Data Science in 2023. Another notable study is by C. Xu, J. Li, B. Feng, and B. Lu, which discusses 'A Financial Time-Series Prediction Model Based on Multiplex Attention and Linear Transformer Structure,' published in Applied Sciences in 2023.",
+    "file_id": "f90ae035-fc10-4733-9397-0032186cdb6c",
+    "file_name": "LR_comparitive analysis_references.docx"
+  },
+  {
+    "query": "What does Deep Dreaming do with images?",
+    "expected_output": "Deep Dreaming is an application of deep learning that allows a system to hallucinate on top of an image, generating dream-like visuals. The nature of these dreams varies depending on the type of neural network used. For instance, horizon lines may be filled with towers and pagodas, while rocks and trees can transform into buildings. Additionally, birds and insects might appear in images of leaves.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
+    "file_name": "DL UNIT-I.pdf"
+  },
+  {
+    "query": "What are some recommended textbooks for learning about deep learning?",
+    "expected_output": "Some recommended textbooks for learning about deep learning include: 1. 'Deep Learning: A Practitioner's Approach' by Josh Patterson and Adam Gibson, published by O'Reilly Media, First Edition, 2017. 2. 'Deep Learning' by Ian Goodfellow, Yoshua Bengio, and Aaron Courville, published by MIT Press, 2016. 3. 'Deep Learning' by Amit Kumar Das, Saptarsi Goswami, Pabitra Mitra, and Amlan Chakrabarti, published by Pearson Education, First Edition, 2021.",
+    "file_id": "f098eaaa-8c6a-4e13-8ada-8deb4fc519a4",
+    "file_name": "DL UNIT-I.pdf"
   }
 ]
