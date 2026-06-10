@@ -101,7 +101,4 @@ ai-document-chat/
 └── README.md                  # ContextIQ Documentation
 ```
 
----
 
-## 🛡️ License
-Distributed under the MIT License. See `LICENSE` for more information.
