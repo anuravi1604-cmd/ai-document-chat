@@ -17,8 +17,15 @@ ContextIQ implements a smart classification pipeline to bypass CPU processing bo
 ### 2. Isolated Workspace Search
 - Each document represents an independent chat session. All indexes are strictly separated by document ID to ensure **zero cross-contamination** of context segments between files.
 
-### 3. Advanced Hybrid Search & Reranking
-ContextIQ leverages a state-of-the-art multi-stage retrieval architecture:
+### 3. Agentic Text-to-SQL for Structured Data
+ContextIQ seamlessly handles structured datasets (CSV/Excel) natively:
+- **Smart Routing**: Instantly recognizes `.csv` and `.xlsx` files, bypassing the semantic chunking engine and loading them directly into high-performance in-memory SQLite tables using pandas.
+- **Robust Auto-Cleaning**: Dynamically scans the first 20 rows of spreadsheets to detect the true header row, ignoring empty spaces and title headers (solving the classic `Unnamed: 0` pandas problem).
+- **Agentic SQL Generation**: Analyzes the schema and sample data to construct secure, read-only SQL queries to answer exact mathematical, aggregation, or filtering questions without vector hallucinations.
+- **Collection Joins**: Chat with a collection of multiple CSV files simultaneously, joining them as separate SQL tables.
+
+### 4. Advanced Hybrid Search & Reranking
+ContextIQ leverages a state-of-the-art multi-stage retrieval architecture for unstructured text:
 1. **Lexical Retrieval**: Extracts keyword matches using a BM25 index.
 2. **Dense Retrieval**: Extracts semantic matches using BGE Embeddings (`BAAI/bge-base-en-v1.5`) inside a FAISS vector index.
 3. **Hybrid Fusion**: Merges lexical and semantic scores using a weighted arithmetic combination (`0.7 * semantic + 0.3 * keyword`).
