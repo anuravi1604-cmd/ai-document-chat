@@ -20,7 +20,16 @@ from backend.app.storage import (
     get_or_create_session,
     add_message,
     get_session_messages,
-    clear_chat_history
+    clear_chat_history,
+    create_collection,
+    list_collections,
+    delete_collection,
+    add_file_to_collection,
+    remove_file_from_collection,
+    get_collection_files,
+    get_or_create_collection_session,
+    add_collection_message,
+    get_collection_messages
 )
 from backend.app.pipeline import RAGPipeline
 
@@ -49,6 +58,15 @@ def on_startup():
 # Background Task to process document index asynchronously
 def process_document_in_background(file_id: str, file_path: str):
     try:
+        from backend.app.storage import get_file
+        file_meta = get_file(file_id)
+        file_type = file_meta.get("file_type") if file_meta else "unknown"
+
+        if file_type in ["csv", "excel"]:
+            print(f"[Worker] Bypassing FAISS indexing for structured file ID: {file_id}")
+            update_file_status(file_id, "ready")
+            return
+
         print(f"[Worker] Starting RAG indexing for file ID: {file_id}")
         # Build FAISS + BM25 and get chunks
         chunks = RAGPipeline.create_index(file_id, file_path)
@@ -96,10 +114,11 @@ def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(.
     filename = file.filename
     ext = os.path.splitext(filename)[1].lower()
     
-    if ext not in [".pdf", ".docx", ".txt", ".md", ".markdown"]:
+    if ext not in [".pdf", ".docx", ".txt", ".md", ".markdown", ".csv", ".xlsx"]:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported file format '{ext}'. Supported formats: PDF, DOCX, TXT, MD"
+            detail=f"Unsupported file format '{ext}'. Supported formats: PDF, DOCX, TXT, MD, CSV, XLSX"
+
         )
         
     file_id = str(uuid.uuid4())
@@ -115,7 +134,18 @@ def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(.
     file_size = os.path.getsize(temp_file_path)
     
     # Map raw extension to clean type
-    file_type = "pdf" if ext == ".pdf" else "docx" if ext == ".docx" else "txt" if ext in [".txt", ".md", ".markdown"] else "unknown"
+    if ext == ".pdf":
+        file_type = "pdf"
+    elif ext == ".docx":
+        file_type = "docx"
+    elif ext in [".txt", ".md", ".markdown"]:
+        file_type = "txt"
+    elif ext == ".csv":
+        file_type = "csv"
+    elif ext == ".xlsx":
+        file_type = "excel"
+    else:
+        file_type = "unknown"
     
     # 2. Add metadata record in SQLite (processing status)
     try:
@@ -270,43 +300,80 @@ async def chat_with_document(file_id: str, payload: ChatRequest):
     if not query:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
         
-    # 1. Fetch file chunks from database
-    try:
-        db_chunks = get_file_chunks(file_id)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch document chunks: {str(e)}")
+    file_type = doc.get("file_type", "unknown")
+    
+    if file_type not in ["csv", "excel"]:
+        # 1. Fetch file chunks from database
+        try:
+            db_chunks = get_file_chunks(file_id)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to fetch document chunks: {str(e)}")
+            
+        if not db_chunks:
+            raise HTTPException(
+                status_code=404,
+                detail="No document chunks found. Try re-uploading the file."
+            )
         
-    if not db_chunks:
-        raise HTTPException(
-            status_code=404,
-            detail="No document chunks found. Try re-uploading the file."
-        )
+    if file_type not in ["csv", "excel"]:
+        # 2. Retrieve top matching chunks using the hybrid FAISS + BM25 Rerank pipeline
+        try:
+            top_p = 8 # Enforced from notebook
+            top_candidates = 20 # Enforced from notebook
+            
+            retrieved_chunks = RAGPipeline.retrieve(
+                file_id=file_id,
+                db_chunks=db_chunks,
+                query=query,
+                top_k=top_candidates,
+                top_p=top_p
+            )
+        except FileNotFoundError as fnf:
+            raise HTTPException(status_code=404, detail=str(fnf))
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Retrieval error: {str(e)}")
+    else:
+        retrieved_chunks = []
         
-    # 2. Retrieve top matching chunks using the hybrid FAISS + BM25 Rerank pipeline
-    try:
-        top_p = payload.top_k or 5
-        top_candidates = max(15, 3 * top_p)  # dynamically scale pool
-        
-        retrieved_chunks = RAGPipeline.retrieve(
-            file_id=file_id,
-            db_chunks=db_chunks,
-            query=query,
-            top_k=top_candidates,
-            top_p=top_p
-        )
-    except FileNotFoundError as fnf:
-        raise HTTPException(status_code=404, detail=str(fnf))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Retrieval error: {str(e)}")
-        
+    file_type = doc.get("file_type", "unknown")
+    
     # 3. Create persistent chat session for isolated chat context
     session_id = get_or_create_session(file_id)
+    history = get_session_messages(session_id)
     
     # 4. Save User Message in database
     add_message(session_id=session_id, role="user", content=query)
     
-    # 5. Build prompt
-    prompt = RAGPipeline.construct_prompt(query, retrieved_chunks)
+    # --- STRUCTURED DATA ROUTING ---
+    if file_type in ["csv", "excel"]:
+        async def structured_sse_event_generator():
+            full_assistant_response = ""
+            from backend.app.pipeline import StructuredDataPipeline
+            try:
+                files_info = [{
+                    "file_path": doc.get("file_path"),
+                    "file_type": file_type,
+                    "table_name": "dataset"
+                }]
+                for token in StructuredDataPipeline.stream_sql_chat(
+                    query=query, 
+                    chat_history=history, 
+                    files_info=files_info,
+                    openrouter_key=payload.openrouter_key
+                ):
+                    full_assistant_response += token
+                    yield f"data: {json.dumps(token)}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps(str(e))}\n\n"
+            finally:
+                add_message(session_id=session_id, role="assistant", content=full_assistant_response, sources=[])
+                yield "data: [DONE]\n\n"
+                
+        return StreamingResponse(structured_sse_event_generator(), media_type="text/event-stream")
+        
+    # --- UNSTRUCTURED VECTOR RAG ROUTING ---
+    # 5. Build context string
+    context_str = RAGPipeline.construct_prompt(query, retrieved_chunks)
     
     # 6. Stream SSE generator
     async def sse_event_generator():
@@ -319,7 +386,8 @@ async def chat_with_document(file_id: str, payload: ChatRequest):
                 "score": float(item["score"]),
                 "rerank_score": float(item.get("rerank_score", item["score"])),
                 "is_table": bool(item.get("metadata", {}).get("is_table", False)),
-                "header": item.get("metadata", {}).get("Header 1", "")
+                "header": item.get("metadata", {}).get("Header 1", ""),
+                "filename": item.get("metadata", {}).get("filename", "")
             })
             
         # A. Emit retrieved sources first
@@ -329,7 +397,7 @@ async def chat_with_document(file_id: str, payload: ChatRequest):
         ai_response_text = ""
         try:
             # We call this in a blocking-to-async thread context if required, but inside generator is fine
-            for token in RAGPipeline.ask_ollama_stream(prompt, provider=payload.provider, openrouter_key=payload.openrouter_key):
+            for token in RAGPipeline.ask_ollama_stream(query, context_str, provider=payload.provider, openrouter_key=payload.openrouter_key, history=history):
                 ai_response_text += token
                 yield f"event: token\ndata: {json.dumps(token)}\n\n"
         except Exception as e:
@@ -344,6 +412,191 @@ async def chat_with_document(file_id: str, payload: ChatRequest):
             print(f"Error saving assistant message: {db_err}")
             
         # D. Yield final termination token
+        yield "event: done\ndata: [DONE]\n\n"
+        
+    return StreamingResponse(sse_event_generator(), media_type="text/event-stream")
+
+# --- COLLECTION ENDPOINTS ---
+
+class CollectionRequest(BaseModel):
+    name: str
+
+@app.post("/api/collections")
+def api_create_collection(payload: CollectionRequest):
+    name_to_check = payload.name.strip().lower()
+    existing_collections = list_collections()
+    for col in existing_collections:
+        if col["name"].strip().lower() == name_to_check:
+            raise HTTPException(status_code=400, detail=f"A collection with the name '{payload.name}' already exists.")
+            
+    collection_id = str(uuid.uuid4())
+    col = create_collection(collection_id, payload.name)
+    return col
+
+@app.get("/api/collections")
+def api_list_collections():
+    return list_collections()
+
+@app.delete("/api/collections/{collection_id}")
+def api_delete_collection(collection_id: str):
+    delete_collection(collection_id)
+    return {"message": "Collection deleted"}
+
+class CollectionFileRequest(BaseModel):
+    file_id: str
+
+@app.post("/api/collections/{collection_id}/files")
+def api_add_file_to_collection(collection_id: str, payload: CollectionFileRequest):
+    add_file_to_collection(collection_id, payload.file_id)
+    return {"message": "File added to collection"}
+
+@app.delete("/api/collections/{collection_id}/files/{file_id}")
+def api_remove_file_from_collection(collection_id: str, file_id: str):
+    remove_file_from_collection(collection_id, file_id)
+    return {"message": "File removed from collection"}
+
+@app.get("/api/collections/{collection_id}/files")
+def api_get_collection_files(collection_id: str):
+    return get_collection_files(collection_id)
+
+@app.get("/api/collections/{collection_id}/messages")
+def api_get_collection_messages(collection_id: str):
+    session_id = get_or_create_collection_session(collection_id)
+    messages = get_collection_messages(session_id)
+    return {
+        "session_id": session_id,
+        "messages": messages,
+        "status": "ready"
+    }
+
+@app.post("/api/collections/{collection_id}/chat")
+async def chat_with_collection(collection_id: str, payload: ChatRequest):
+    query = payload.query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+        
+    # Get all files in collection
+    files = get_collection_files(collection_id)
+    if not files:
+        raise HTTPException(status_code=400, detail="Collection is empty")
+        
+    # Check if all files are ready
+    for f in files:
+        if f["status"] != "ready":
+            raise HTTPException(status_code=400, detail=f"File {f['filename']} is not ready.")
+            
+    # Route based on file types
+    structured_files_info = []
+    unstructured_files = []
+    
+    for f in files:
+        if f.get("file_type") in ["csv", "excel"]:
+            table_name = "".join(c for c in f["filename"] if c.isalnum() or c == "_")
+            if not table_name: table_name = "dataset"
+            structured_files_info.append({
+                "file_path": f.get("file_path"),
+                "file_type": f.get("file_type"),
+                "table_name": table_name
+            })
+        else:
+            unstructured_files.append(f)
+            
+    if len(structured_files_info) > 0 and len(unstructured_files) > 0:
+        raise HTTPException(status_code=400, detail="Hybrid querying across both structured and unstructured data in a single collection is not supported yet. Please separate them.")
+        
+    session_id = get_or_create_collection_session(collection_id)
+    history = get_collection_messages(session_id)
+    add_collection_message(session_id=session_id, role="user", content=query)
+    
+    # --- STRUCTURED DATA ROUTING ---
+    if len(structured_files_info) > 0:
+        async def structured_collection_sse_event_generator():
+            full_assistant_response = ""
+            from backend.app.pipeline import StructuredDataPipeline
+            try:
+                for token in StructuredDataPipeline.stream_sql_chat(
+                    query=query, 
+                    chat_history=history, 
+                    files_info=structured_files_info,
+                    openrouter_key=payload.openrouter_key
+                ):
+                    full_assistant_response += token
+                    yield f"data: {json.dumps(token)}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps(str(e))}\n\n"
+            finally:
+                add_collection_message(session_id=session_id, role="assistant", content=full_assistant_response, sources=[])
+                yield "data: [DONE]\n\n"
+        return StreamingResponse(structured_collection_sse_event_generator(), media_type="text/event-stream")
+
+    # --- UNSTRUCTURED VECTOR RAG ROUTING ---
+    # Pool results across all unstructured files
+    all_retrieved_chunks = []
+    top_p = 8 # Enforced notebook limit per file
+    top_candidates = 20 # Enforced notebook limit per file
+    
+    for f in unstructured_files:
+        file_id = f["id"]
+        try:
+            db_chunks = get_file_chunks(file_id)
+            if db_chunks:
+                file_chunks = RAGPipeline.retrieve(
+                    file_id=file_id,
+                    db_chunks=db_chunks,
+                    query=query,
+                    top_k=top_candidates,
+                    top_p=top_p
+                )
+                for chunk in file_chunks:
+                    if "metadata" not in chunk: chunk["metadata"] = {}
+                    chunk["metadata"]["filename"] = f["filename"]
+                all_retrieved_chunks.extend(file_chunks)
+        except Exception as e:
+            print(f"Retrieval error for file {file_id}: {e}")
+            
+    # Sort all pooled chunks globally by rerank_score (higher is better)
+    all_retrieved_chunks.sort(key=lambda x: x.get("rerank_score", x.get("score", 0)), reverse=True)
+    
+    # Take the absolute Top 8 overall
+    final_chunks = all_retrieved_chunks[:8]
+    
+    # Save User Message was already done above
+
+    
+    # Build context string
+    context_str = RAGPipeline.construct_prompt(query, final_chunks)
+    
+    # Stream SSE
+    async def sse_event_generator():
+        sources = []
+        for idx, item in enumerate(final_chunks):
+            sources.append({
+                "source_index": idx + 1,
+                "content": item["content"],
+                "score": float(item["score"]),
+                "rerank_score": float(item.get("rerank_score", item["score"])),
+                "is_table": bool(item.get("metadata", {}).get("is_table", False)),
+                "header": item.get("metadata", {}).get("Header 1", ""),
+                "filename": item.get("metadata", {}).get("filename", "")
+            })
+            
+        yield f"event: sources\ndata: {json.dumps(sources)}\n\n"
+        
+        ai_response_text = ""
+        try:
+            for token in RAGPipeline.ask_ollama_stream(query, context_str, provider=payload.provider, openrouter_key=payload.openrouter_key, history=history):
+                ai_response_text += token
+                yield f"event: token\ndata: {json.dumps(token)}\n\n"
+        except Exception as e:
+            err_msg = f"[ERROR: Model streaming failed: {str(e)}]"
+            ai_response_text += err_msg
+            yield f"event: token\ndata: {json.dumps(err_msg)}\n\n"
+            
+        try:
+            add_collection_message(session_id=session_id, role="assistant", content=ai_response_text, sources=sources)
+        except Exception as db_err:
+            print(f"Error saving assistant message: {db_err}")
+            
         yield "event: done\ndata: [DONE]\n\n"
         
     return StreamingResponse(sse_event_generator(), media_type="text/event-stream")

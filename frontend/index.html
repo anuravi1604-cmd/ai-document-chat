@@ -4,6 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>ContextIQ | Enterprise RAG Workspace</title>
 
     <!-- Tailwind CSS -->
@@ -273,7 +276,7 @@
         <div class="flex items-center gap-3">
             <div
                 class="h-9 w-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-500/20">
-                <i data-lucide="zap" class="h-5 w-5 text-white"></i>
+                <i data-lucide="brain" class="h-5 w-5 text-white"></i>
             </div>
             <div>
                 <h1 class="text-lg font-bold tracking-wide text-white flex items-center gap-2">
@@ -304,13 +307,13 @@
             <div class="p-5 border-b border-darkBorder/40">
                 <div id="drop-zone"
                     class="border-2 border-dashed border-darkBorder hover:border-brand-500/50 rounded-xl p-6 text-center cursor-pointer bg-darkPanel/30 hover:bg-brand-500/[0.02] transition flex flex-col items-center justify-center relative group">
-                    <input type="file" id="file-input" class="hidden" accept=".pdf,.docx,.txt,.md,.markdown" />
                     <div
                         class="h-10 w-10 rounded-lg bg-darkBorder group-hover:bg-brand-600/10 group-hover:text-brand-400 flex items-center justify-center mb-3 transition">
                         <i data-lucide="upload-cloud" class="h-5 w-5 text-gray-400 group-hover:text-brand-400"></i>
                     </div>
                     <p class="text-xs font-semibold text-gray-200">Drag & drop files here</p>
-                    <p class="text-[10px] text-gray-400 mt-1">Supports PDF, DOCX, TXT, MD up to 50MB</p>
+                    <input type="file" id="file-input" class="hidden" accept=".pdf,.docx,.txt,.md,.markdown,.csv,.xlsx" />
+                    <p class="text-[10px] text-gray-400 mt-1">Supports PDF, DOCX, TXT, MD, CSV, XLSX up to 50MB</p>
                 </div>
                 <!-- AUTO-OPEN OPTION -->
                 <div class="mt-3 flex items-center justify-between px-1">
@@ -331,21 +334,34 @@
                 </div>
             </div>
 
+            <!-- FILES & COLLECTIONS TABS -->
+            <div class="flex items-center px-4 pt-4 mb-2">
+                <button id="tab-docs" class="flex-1 py-1.5 text-[10px] font-bold text-white uppercase tracking-widest border-b-2 border-brand-500 transition focus:outline-none">Documents</button>
+                <button id="tab-collections" class="flex-1 py-1.5 text-[10px] font-bold text-gray-500 hover:text-gray-300 uppercase tracking-widest border-b-2 border-transparent transition focus:outline-none">Collections</button>
+            </div>
+
             <!-- FILES LIST CONTAINER -->
-            <div class="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-2">
+            <div id="docs-container" class="flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-2">
                 <div class="flex items-center justify-between px-1 mb-2">
                     <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Your Documents</span>
-                    <span id="file-count"
-                        class="bg-darkBorder text-gray-400 text-[10px] font-medium px-2 py-0.5 rounded-full">0
-                        files</span>
+                    <span id="file-count" class="bg-darkBorder text-gray-400 text-[10px] font-medium px-2 py-0.5 rounded-full">0 files</span>
                 </div>
 
                 <div id="files-list" class="flex flex-col gap-2">
-                    <!-- Dynamic File Items go here -->
                     <div class="text-center py-8 text-gray-500">
                         <i data-lucide="folder-open" class="h-8 w-8 mx-auto mb-2 text-gray-600"></i>
                         <p class="text-xs">No documents uploaded yet</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- COLLECTIONS CONTAINER -->
+            <div id="collections-container" class="hidden flex-1 overflow-y-auto px-4 pb-4 flex flex-col gap-2">
+                <button onclick="createNewCollection()" class="w-full p-2.5 rounded-xl border-2 border-dashed border-darkBorder text-gray-400 hover:text-brand-400 hover:border-brand-500/50 hover:bg-brand-500/[0.02] flex items-center justify-center gap-2 text-xs font-semibold transition mb-2">
+                    <i data-lucide="folder-plus" class="h-4 w-4"></i> Create Collection
+                </button>
+                <div id="collections-list" class="flex flex-col gap-2">
+                    <!-- Dynamic Collections go here -->
                 </div>
             </div>
 
@@ -374,8 +390,8 @@
 
             <!-- CHAT WORKSPACE HEADER (Hidden when no active chat) -->
             <div id="chat-header"
-                class="hidden glass-panel border-b border-darkBorder/50 px-6 py-4 flex items-center justify-between shrink-0">
-                <div class="flex items-center gap-3">
+                class="hidden glass-panel border-b border-darkBorder/50 px-6 py-4 flex items-center justify-between shrink-0 overflow-x-auto hide-scrollbar gap-6">
+                <div class="flex items-center gap-3 shrink-0">
                     <div id="active-file-icon"
                         class="h-10 w-10 rounded-lg bg-brand-600/10 text-brand-400 flex items-center justify-center border border-brand-500/20">
                         <!-- Icon injected dynamically -->
@@ -399,7 +415,7 @@
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3 shrink-0">
                     <!-- LLM Provider Selector -->
                     <div
                         class="flex items-center gap-2 bg-darkPanel border border-darkBorder/60 rounded-xl px-3 py-1.5 shadow-inner">
@@ -426,12 +442,7 @@
                         </select>
                     </div>
 
-                    <!-- Custom OpenRouter Key input (hidden by default unless openrouter is selected) -->
-                    <div id="openrouter-key-container" class="hidden flex items-center gap-2 bg-darkPanel border border-darkBorder/60 rounded-xl px-3.5 py-1.5 shadow-inner transition-all duration-300">
-                        <i data-lucide="key" class="h-3.5 w-3.5 text-amber-400"></i>
-                        <input id="openrouter-key" type="password" placeholder="OpenRouter API Key..."
-                            class="bg-transparent border-0 outline-none text-xs text-gray-200 focus:ring-0 w-44 placeholder-gray-500" />
-                    </div>
+
 
                     <button id="btn-export-chat"
                         class="px-3 py-2 border border-darkBorder rounded-lg text-sm hover:bg-darkCard transition">
@@ -442,6 +453,11 @@
                         class="px-3 py-1.5 rounded-lg border border-darkBorder/80 hover:bg-red-500/10 hover:text-red-400 text-xs text-gray-400 font-medium flex items-center gap-1.5 transition">
                         <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
                         Clear History
+                    </button>
+                    <button id="btn-view-collection-files" onclick="window.openCollectionFilesModal()"
+                        class="hidden px-3 py-1.5 rounded-lg border border-brand-500/30 hover:bg-brand-500/10 hover:text-brand-300 text-xs text-brand-400 font-medium flex items-center gap-1.5 transition">
+                        <i data-lucide="layers" class="h-3.5 w-3.5"></i>
+                        View Files
                     </button>
                     <button id="btn-delete-file"
                         class="px-3 py-1.5 rounded-lg border border-darkBorder/80 hover:bg-red-500/20 hover:text-red-400 text-xs text-gray-400 font-medium flex items-center gap-1.5 transition">
@@ -460,7 +476,7 @@
                         class="h-16 w-16 rounded-2xl bg-gradient-to-tr from-brand-600/20 to-brand-400/10 border border-brand-500/25 flex items-center justify-center mb-6 shadow-xl shadow-brand-500/[0.03]">
                         <i data-lucide="sparkles" class="h-8 w-8 text-brand-400"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-white mb-2">Build Isolated AI Knowledge bases</h3>
+                    <h3 class="text-xl font-bold text-white mb-2">Build Custom Knowledge Bases</h3>
                     <p class="text-gray-400 text-sm mb-8 leading-relaxed">Select a document from the left sidebar to
                         start a private, localized chat session. The AI will strictly ground its responses in your
                         uploaded content.</p>
@@ -490,6 +506,9 @@
                         class="flex-1 bg-transparent border-0 outline-none text-sm text-gray-200 placeholder-gray-500 px-3 py-2 resize-none max-h-32 focus:ring-0 focus:outline-none focus:border-0"
                         style="height: 38px;"></textarea>
 
+                    <button type="button" id="btn-stop" class="hidden h-9 w-9 rounded-xl bg-darkBorder hover:bg-rose-500/20 text-gray-400 hover:text-rose-400 border border-darkBorder hover:border-rose-500/30 flex items-center justify-center shrink-0 transition" title="Stop generating">
+                        <i data-lucide="square" class="h-3.5 w-3.5 fill-current"></i>
+                    </button>
                     <button type="submit" id="btn-send"
                         class="h-9 w-9 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:bg-darkBorder disabled:text-gray-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-brand-500/10 hover:shadow-brand-500/20 active:scale-95 transition">
                         <i data-lucide="arrow-up" class="h-4 w-4"></i>
@@ -576,6 +595,7 @@
         let isGenerating = false;
         let currentSources = [];
         let autoOpenOnUpload = localStorage.getItem("autoOpenOnUpload") === "true";
+        let currentChatController = null;
 
         // DOM Elements
         const dropZone = document.getElementById("drop-zone");
@@ -594,6 +614,13 @@
         const chatForm = document.getElementById("chat-form");
         const userInput = document.getElementById("user-input");
         const btnSend = document.getElementById("btn-send");
+        const btnStop = document.getElementById("btn-stop");
+
+        btnStop.addEventListener("click", () => {
+            if (currentChatController) {
+                currentChatController.abort();
+            }
+        });
         const btnExportChat = document.getElementById("btn-export-chat");
         const btnClearChat = document.getElementById("btn-clear-chat");
         const btnDeleteFile = document.getElementById("btn-delete-file");
@@ -742,16 +769,6 @@
 
             // Handle LLM Provider selector changes
             const llmProvider = document.getElementById("llm-provider");
-            const openrouterKeyContainer = document.getElementById("openrouter-key-container");
-            if (llmProvider && openrouterKeyContainer) {
-                llmProvider.addEventListener("change", () => {
-                    if (llmProvider.value === "openrouter") {
-                        openrouterKeyContainer.classList.remove("hidden");
-                    } else {
-                        openrouterKeyContainer.classList.add("hidden");
-                    }
-                });
-            }
 
 
 
@@ -777,6 +794,10 @@
 
             if (type === "txt") {
                 return `<i data-lucide="file-edit" class="h-4.5 w-4.5 text-gray-300"></i>`;
+            }
+
+            if (type === "csv" || type === "excel") {
+                return `<i data-lucide="table" class="h-4.5 w-4.5 text-emerald-400"></i>`;
             }
 
             return `<i data-lucide="file" class="h-4.5 w-4.5 text-gray-400"></i>`;
@@ -882,7 +903,7 @@
 
                 return `
                     <div onclick="selectWorkspace('${file.id}', '${file.status}')" 
-                        class="relative p-3.5 rounded-xl transition ${pointerClass} ${itemClass} flex items-start justify-between group">
+                        draggable="true" ondragstart="window.setDraggedFileId(\'${file.id}\')" class="relative p-3.5 rounded-xl transition ${pointerClass} ${itemClass} flex items-start justify-between group cursor-grab active:cursor-grabbing">
 
                         <!-- ACTION BUTTONS (Visible on hover) -->
                         <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition z-20">
@@ -996,6 +1017,8 @@
             blankSlate.classList.add("hidden");
             chatHeader.classList.remove("hidden");
             chatInputBar.classList.remove("hidden");
+            document.getElementById("btn-delete-file").classList.remove("hidden");
+            document.getElementById("btn-view-collection-files").classList.add("hidden");
 
             // 2. Load workspace metadata header
             const sizeKB = (file.file_size / 1024).toFixed(0);
@@ -1065,7 +1088,7 @@
 
         function renderEmptyChatState(filename) {
             chatFeed.innerHTML = `
-                <div class="flex-grow flex flex-col items-center justify-center text-center max-w-lg mx-auto py-12 fade-in select-none">
+                <div id="empty-state-isolated" class="flex-grow flex flex-col items-center justify-center text-center max-w-lg mx-auto py-12 fade-in select-none">
                     <div class="h-12 w-12 rounded-xl bg-brand-600/10 border border-brand-500/15 flex items-center justify-center mb-4">
                         <i data-lucide="message-square" class="h-6 w-6 text-brand-400"></i>
                     </div>
@@ -1110,8 +1133,8 @@
             toggleInputState(true);
 
             // Remove empty states if present
-            const slate = chatFeed.querySelector("#blank-slate") || chatFeed.querySelector(".select-none");
-            if (slate) chatFeed.innerHTML = "";
+            const slate = chatFeed.querySelector("#blank-slate") || chatFeed.querySelector("#empty-state-isolated");
+            if (slate) slate.remove();
 
             // 1. Append User Message
             appendMessageBubble("user", query, null, false);
@@ -1142,20 +1165,19 @@
 
             try {
                 const provider = document.getElementById("llm-provider").value;
-                const openrouterKey = document.getElementById("openrouter-key").value;
                 const topK = parseInt(document.getElementById("rag-top-k").value) || 5;
 
                 console.log("Provider:", provider);
-                console.log("Key length:", openrouterKey.length);
                 console.log("Top K:", topK);
 
+                currentChatController = new AbortController();
                 const response = await fetch(`${API_BASE}/files/${activeFileId}/chat`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
+                    signal: currentChatController.signal,
                     body: JSON.stringify({
                         query: query,
                         provider: provider,
-                        openrouter_key: openrouterKey,
                         top_k: topK
                     })
                 });
@@ -1241,12 +1263,17 @@
                 contentDiv.classList.remove("typing-cursor");
 
             } catch (err) {
-                console.error(err);
                 contentDiv.classList.remove("typing-cursor");
-                contentDiv.innerHTML = `<p class="text-rose-400 font-semibold flex items-center gap-1.5"><i data-lucide="alert-circle" class="h-4 w-4"></i> Error streaming response: ${err.message}</p>`;
+                if (err.name === 'AbortError') {
+                    contentDiv.innerHTML += `<div class="mt-4 text-xs font-semibold text-gray-500 flex items-center gap-1.5"><i data-lucide="square" class="h-3 w-3 fill-current"></i> Generation stopped by user.</div>`;
+                } else {
+                    console.error(err);
+                    contentDiv.innerHTML = `<p class="text-rose-400 font-semibold flex items-center gap-1.5"><i data-lucide="alert-circle" class="h-4 w-4"></i> Error streaming response: ${err.message}</p>`;
+                }
                 lucide.createIcons();
             } finally {
                 isGenerating = false;
+                currentChatController = null;
                 toggleInputState(false);
             }
         });
@@ -1254,13 +1281,16 @@
         // Toggle form inputs
         function toggleInputState(disabled, isIndexing = false) {
             userInput.disabled = disabled;
-            btnSend.disabled = disabled;
             if (disabled) {
                 userInput.placeholder = isIndexing ? "Document is indexing... Chat will enable shortly." : "Generating response...";
                 chatForm.classList.add("opacity-50", "cursor-not-allowed");
+                btnSend.classList.add("hidden");
+                if (!isIndexing) btnStop.classList.remove("hidden");
             } else {
                 userInput.placeholder = "Ask a question about this document...";
                 chatForm.classList.remove("opacity-50", "cursor-not-allowed");
+                btnSend.classList.remove("hidden");
+                btnStop.classList.add("hidden");
                 userInput.focus();
             }
         }
@@ -1303,12 +1333,15 @@
                                 onclick="showSourceModal(${src.source_index})"
                                 class="p-4 bg-darkPanel/40 border border-darkBorder/40 hover:bg-darkPanel/60 hover:border-brand-500/30 rounded-xl cursor-pointer transition-all duration-300 shadow-md">
                                 
-                                <div class="flex items-center justify-between mb-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[9px] font-bold px-2 py-0.5 rounded border ${bgBadgeColor}">[Source ${src.source_index}] ${prefix}</span>
-                                        ${src.header ? `<span class="text-[9px] text-gray-400 font-medium truncate max-w-[120px]" title="${src.header}">${src.header}</span>` : ''}
+                                <div class="flex items-start justify-between mb-2">
+                                    <div class="flex flex-col gap-1.5 min-w-0">
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-[9px] font-bold px-2 py-0.5 rounded border ${bgBadgeColor} shrink-0">[Source ${src.source_index}] ${prefix}</span>
+                                            ${src.filename ? `<span class="text-[10px] text-brand-300 font-semibold truncate max-w-[120px]" title="${src.filename}"><i data-lucide="file-text" class="h-2.5 w-2.5 inline mb-0.5 mr-0.5"></i>${src.filename}</span>` : ''}
+                                        </div>
+                                        ${src.header ? `<span class="text-[9px] text-gray-400 font-medium truncate max-w-[180px]" title="${src.header}">${src.header}</span>` : ''}
                                     </div>
-                                    <div class="h-6 w-6 rounded bg-darkBorder flex items-center justify-center text-gray-400 hover:text-white transition">
+                                    <div class="h-6 w-6 rounded bg-darkBorder flex items-center justify-center text-gray-400 hover:text-white transition shrink-0 ml-2">
                                         <i data-lucide="maximize-2" class="h-3 w-3"></i>
                                     </div>
                                 </div>
@@ -1428,16 +1461,21 @@
             bubble.innerHTML = `
                 <div class="flex gap-3 max-w-3xl ${isUser ? 'flex-row-reverse' : 'flex-row'}">
                     ${avatarHtml}
-                    <div class="flex flex-col">
-                        <div class="px-4.5 py-3 rounded-2xl text-sm leading-relaxed border border-white/[0.02] shadow-md ${cardBg}">
+                    <div class="flex flex-col group relative max-w-full">
+                        <div class="px-4.5 py-3 rounded-2xl text-sm leading-relaxed border border-white/[0.02] shadow-md ${cardBg} overflow-x-auto">
                             <div class="message-content prose max-w-none text-gray-200 ${liveCursorClass}">
                                 ${parsedHtml}
                             </div>
                             ${badgeHtml}
                         </div>
-                        <span class="text-[9px] text-gray-500 mt-1 ${isUser ? 'text-right' : 'text-left'} px-1">
-                            ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+                        <div class="flex items-center gap-2 mt-1 ${isUser ? 'justify-end' : 'justify-start'} px-1">
+                            <span class="text-[9px] text-gray-500">
+                                ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <button class="text-gray-500 hover:text-gray-300 transition-colors opacity-0 group-hover:opacity-100" title="Copy Message" onclick="copyMessageText(this)">
+                                <i data-lucide="copy" class="h-3 w-3"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1483,6 +1521,28 @@
                 });
             });
             lucide.createIcons();
+        }
+
+        // Copy entire message text
+        function copyMessageText(btn) {
+            const wrapper = btn.closest('.group');
+            if (!wrapper) return;
+            const contentDiv = wrapper.querySelector('.message-content');
+            if (!contentDiv) return;
+            
+            const textToCopy = contentDiv.innerText;
+            
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = `<i data-lucide="check" class="h-3 w-3 text-emerald-400"></i>`;
+                lucide.createIcons();
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    lucide.createIcons();
+                }, 2000);
+            }).catch(err => {
+                console.error("Failed to copy text: ", err);
+            });
         }
         btnExportChat.addEventListener("click", exportChat);
 
@@ -1843,6 +1903,423 @@
 
         </div>
     </div>
-</body>
 
+    <!-- Collection Files Modal -->
+    <div id="collection-files-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+        <div class="w-[600px] max-w-[90vw] bg-darkPanel border border-darkBorder rounded-xl p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-white">
+                    <i data-lucide="folders" class="h-5 w-5 inline mr-1 text-brand-400"></i>
+                    Collection Documents
+                </h3>
+                <button onclick="window.closeCollectionFilesModal()" class="text-gray-400 hover:text-white transition">
+                    ✕
+                </button>
+            </div>
+            <div id="collection-files-list" class="max-h-[60vh] overflow-y-auto mt-2">
+            </div>
+        </div>
+    </div>
+
+<script>
+// --- COLLECTIONS UI LOGIC ---
+const tabDocs = document.getElementById("tab-docs");
+const tabCollections = document.getElementById("tab-collections");
+const docsContainer = document.getElementById("docs-container");
+const collectionsContainer = document.getElementById("collections-container");
+const collectionsList = document.getElementById("collections-list");
+
+if (tabDocs && tabCollections) {
+    let collections = [];
+    let activeCollectionId = null;
+
+    tabDocs.addEventListener("click", () => {
+        tabDocs.classList.add("text-white", "border-brand-500");
+        tabDocs.classList.remove("text-gray-500", "border-transparent");
+        tabCollections.classList.remove("text-white", "border-brand-500");
+        tabCollections.classList.add("text-gray-500", "border-transparent");
+        docsContainer.classList.remove("hidden");
+        collectionsContainer.classList.add("hidden");
+        activeCollectionId = null;
+    });
+
+    tabCollections.addEventListener("click", () => {
+        tabCollections.classList.add("text-white", "border-brand-500");
+        tabCollections.classList.remove("text-gray-500", "border-transparent");
+        tabDocs.classList.remove("text-white", "border-brand-500");
+        tabDocs.classList.add("text-gray-500", "border-transparent");
+        collectionsContainer.classList.remove("hidden");
+        docsContainer.classList.add("hidden");
+        
+        // Use existing variables safely
+        if(typeof activeFileId !== 'undefined') activeFileId = null;
+        if(typeof renderChatState === 'function') renderChatState();
+        fetchCollections();
+    });
+
+    tabDocs.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        if(tabDocs.classList.contains("text-gray-500")) tabDocs.click();
+    });
+
+    tabCollections.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        if(tabCollections.classList.contains("text-gray-500")) tabCollections.click();
+    });
+
+    async function fetchCollections() {
+        try {
+            const response = await fetch(`${API_BASE}/collections`);
+            if (response.ok) {
+                collections = await response.json();
+                renderCollectionsList();
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    async function createNewCollection() {
+        const name = prompt("Enter a name for the new collection:", "New Collection");
+        if (!name) return;
+        try {
+            const res = await fetch(`${API_BASE}/collections`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name })
+            });
+            if (res.ok) {
+                fetchCollections();
+                showToast("Success", "Collection created", "success");
+            } else {
+                const err = await res.json();
+                showToast("Error", err.detail || "Failed to create collection", "error");
+            }
+        } catch (e) {
+            console.error(e);
+            showToast("Error", "An unexpected error occurred", "error");
+        }
+    }
+    window.createNewCollection = createNewCollection;
+
+    async function deleteCollection(id) {
+        if(!confirm("Delete this collection?")) return;
+        try {
+            await fetch(`${API_BASE}/collections/${id}`, { method: 'DELETE' });
+            if(activeCollectionId === id) {
+                activeCollectionId = null;
+                if(typeof renderChatState === 'function') renderChatState();
+            }
+            fetchCollections();
+        } catch (e) { console.error(e); }
+    }
+    window.deleteCollection = deleteCollection;
+
+    let draggedFileId = null;
+    window.setDraggedFileId = function(id) { draggedFileId = id; }
+
+    function renderCollectionsList() {
+        if (collections.length === 0) {
+            collectionsList.innerHTML = `<div class="text-center py-8 text-gray-500"><i data-lucide="folders" class="h-8 w-8 mx-auto mb-2 text-gray-600"></i><p class="text-xs">No collections created</p></div>`;
+            lucide.createIcons();
+            return;
+        }
+
+        collectionsList.innerHTML = collections.map(col => {
+            const isActive = col.id === activeCollectionId;
+            let itemClass = isActive ? "bg-gradient-to-tr from-brand-600/10 to-indigo-500/[0.03] border border-brand-500/25 shadow-lg shadow-brand-500/[0.02]" : "bg-darkPanel/40 hover:bg-darkPanel border border-darkBorder/40";
+            
+            return `
+                <div 
+                    onclick="selectCollection('${col.id}')"
+                    ondragover="event.preventDefault(); this.classList.add('border-brand-500');"
+                    ondragleave="this.classList.remove('border-brand-500');"
+                    ondrop="event.preventDefault(); this.classList.remove('border-brand-500'); addDraggedFileToCollection('${col.id}')"
+                    class="relative p-3.5 rounded-xl cursor-pointer transition flex flex-col group ${itemClass}">
+                    <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition z-20">
+                        <button onclick="event.stopPropagation(); deleteCollection('${col.id}')" class="h-6 w-6 rounded bg-darkPanel border border-darkBorder/60 flex items-center justify-center text-gray-400 hover:text-red-400 hover:border-red-500/30 transition">
+                            <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="h-8.5 w-8.5 rounded-lg bg-darkBorder flex items-center justify-center shrink-0 text-gray-400 ${isActive ? 'text-brand-400 bg-brand-500/10' : ''}">
+                            <i data-lucide="folders" class="h-4 w-4"></i>
+                        </div>
+                        <p class="text-xs font-semibold text-gray-200 truncate pr-8">${col.name}</p>
+                    </div>
+                </div>
+            `;
+        }).join("");
+        lucide.createIcons();
+    }
+
+    async function selectCollection(id) {
+        activeCollectionId = id;
+        activeFileId = null;
+        renderCollectionsList();
+        
+        try {
+            const res = await fetch(`${API_BASE}/collections/${id}/files`);
+            const colFiles = await res.json();
+            if(colFiles.length === 0) {
+                let options = `<option value="">-- Choose an uploaded document --</option>`;
+                if (typeof files !== 'undefined') {
+                    options += files.map(f => `<option value="${f.id}">${f.filename}</option>`).join("");
+                }
+
+                chatFeed.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center text-center p-8">
+                        <div class="h-16 w-16 rounded-2xl bg-darkPanel/50 border border-darkBorder flex items-center justify-center mb-4">
+                            <i data-lucide="folder-plus" class="h-8 w-8 text-gray-500"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-200 mb-2">Empty Collection</h3>
+                        <p class="text-sm text-gray-500 max-w-sm mb-6">Drag and drop documents from the "Documents" tab onto this collection in the sidebar, or add one below:</p>
+                        
+                        <div class="flex items-center gap-2 max-w-md w-full mt-2">
+                            <select id="manual-add-file" class="flex-1 bg-darkPanel border border-darkBorder/80 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-brand-500/50 text-gray-200">
+                                ${options}
+                            </select>
+                            <button onclick="manualAddFileToCollection('${id}')" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition">Add</button>
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons();
+                toggleInputState(false);
+                chatHeader.classList.remove("hidden");
+                activeFileTitle.innerHTML = `<i data-lucide="folders" class="h-4 w-4 text-brand-400"></i> <span class="font-bold text-white tracking-wide">Collection</span>`;
+                lucide.createIcons();
+                blankSlate.classList.add("hidden");
+                chatInputBar.classList.remove("hidden");
+                return;
+            }
+            
+            toggleInputState(false);
+            chatFeed.innerHTML = `<div class="p-8 text-center"><i data-lucide="loader-2" class="h-6 w-6 animate-spin mx-auto text-brand-500 mb-3"></i><p class="text-sm text-gray-400 animate-pulse">Retrieving collection workspace...</p></div>`;
+            lucide.createIcons();
+            
+            chatHeader.classList.remove("hidden");
+            document.getElementById("btn-delete-file").classList.add("hidden");
+            document.getElementById("btn-view-collection-files").classList.remove("hidden");
+            activeFileTitle.innerHTML = `<i data-lucide="folders" class="h-4 w-4 text-brand-400"></i> <span class="font-bold text-white tracking-wide">Collection</span>`;
+            lucide.createIcons();
+            blankSlate.classList.add("hidden");
+            chatInputBar.classList.remove("hidden");
+
+            const msgsRes = await fetch(`${API_BASE}/collections/${id}/messages`);
+            if(msgsRes.ok) {
+                const data = await msgsRes.json();
+                chatFeed.innerHTML = "";
+                if (data.messages.length === 0) {
+                    chatFeed.innerHTML = `<div id="blank-slate" class="h-full flex flex-col items-center justify-center text-center p-8 select-none"><div class="h-16 w-16 rounded-2xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center mb-6"><i data-lucide="folders" class="h-8 w-8 text-brand-400"></i></div><h3 class="text-xl font-bold text-white mb-2">Collection Workspace</h3><p class="text-sm text-gray-400 max-w-sm mb-8 leading-relaxed">Ask anything. The AI will retrieve matching chunks from all documents in this collection simultaneously.</p></div>`;
+                    lucide.createIcons();
+                } else {
+                    data.messages.forEach(msg => {
+                        appendMessageBubble(msg.role, msg.content, msg.sources, false, msg.id);
+                    });
+                }
+                toggleInputState(false);
+                scrollToBottom();
+            }
+            
+        } catch(e) { 
+            console.error(e); 
+            alert("Error in selectCollection: " + e.message + "\nPlease take a screenshot of this error!");
+            chatFeed.innerHTML = `<div class="p-8 text-center text-red-400">Failed to load collection. Error: ${e.message}</div>`;
+        }
+    }
+    window.selectCollection = selectCollection;
+
+    async function addDraggedFileToCollection(collectionId) {
+        if(!draggedFileId) return;
+        try {
+            const res = await fetch(`${API_BASE}/collections/${collectionId}/files`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ file_id: draggedFileId })
+            });
+            if(res.ok) {
+                showToast("Added to Collection", "Document added successfully", "success");
+                if(activeCollectionId === collectionId) selectCollection(collectionId);
+            }
+        } catch(e) { console.error(e); }
+        draggedFileId = null;
+    }
+    window.addDraggedFileToCollection = addDraggedFileToCollection;
+
+    async function manualAddFileToCollection(collectionId) {
+        const selectEl = document.getElementById('manual-add-file');
+        if(!selectEl || !selectEl.value) {
+            showToast("Error", "Please select a document first", "error");
+            return;
+        }
+        const fileId = selectEl.value;
+        try {
+            const res = await fetch(`${API_BASE}/collections/${collectionId}/files`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ file_id: fileId })
+            });
+            if(res.ok) {
+                showToast("Added to Collection", "Document added successfully", "success");
+                if(activeCollectionId === collectionId) selectCollection(collectionId);
+            }
+        } catch(e) { console.error(e); }
+    }
+    window.manualAddFileToCollection = manualAddFileToCollection;
+    
+    // Override message submission logic safely
+    document.getElementById("chat-form").addEventListener("submit", async function(e) {
+        if(activeCollectionId) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            
+            const query = userInput.value.trim();
+            if (!query) return;
+
+            const userMsgId = Date.now().toString();
+            appendMessageBubble("user", query, null, false, userMsgId);
+            userInput.value = "";
+            userInput.style.height = "38px";
+            toggleInputState(true);
+            scrollToBottom();
+
+            const botMsgId = "msg-" + Date.now();
+            const assistantBubble = appendMessageBubble("assistant", "", null, true, botMsgId);
+            const contentDiv = assistantBubble.querySelector(".message-content");
+            contentDiv.innerHTML = `<div class="flex flex-col gap-2 text-sm text-gray-400"><div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-brand-400 animate-pulse"></span>Retrieving relevant document chunks...</div></div>`;
+
+            try {
+                const provider = document.getElementById("llm-provider").value;
+                const topK = parseInt(document.getElementById("rag-top-k").value) || 5;
+
+                currentChatController = new AbortController();
+                const response = await fetch(`${API_BASE}/collections/${activeCollectionId}/chat`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    signal: currentChatController.signal,
+                    body: JSON.stringify({ query: query, provider: provider, top_k: topK })
+                });
+
+                if (!response.ok) throw new Error("API failed");
+                
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder("utf-8");
+                let done = false;
+                let fullText = "";
+
+                while (!done) {
+                    const { value, done: readerDone } = await reader.read();
+                    done = readerDone;
+                    if (value) {
+                        const chunk = decoder.decode(value, { stream: true });
+                        const lines = chunk.split("\n");
+                        let eventType = null;
+
+                        for (const line of lines) {
+                            if (line.startsWith("event: ")) {
+                                eventType = line.substring(7).trim();
+                            } else if (line.startsWith("data: ")) {
+                                const dataStr = line.substring(6).trim();
+                                if (dataStr === "[DONE]") { done = true; break; }
+                                try {
+                                    const parsed = JSON.parse(dataStr);
+                                    if (eventType === "sources") {
+                                        // skip sources
+                                    } else if (eventType === "token") {
+                                        fullText += parsed;
+                                        contentDiv.innerHTML = marked.parse(fullText);
+                                    }
+                                } catch (e) {}
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                if (err.name === 'AbortError') {
+                    contentDiv.innerHTML += `<div class="mt-4 text-xs font-semibold text-gray-500 flex items-center gap-1.5"><i data-lucide="square" class="h-3 w-3 fill-current"></i> Generation stopped by user.</div>`;
+                } else {
+                    contentDiv.innerHTML = `<span class="text-rose-400">Failed to get response: ${err.message}</span>`;
+                }
+            } finally {
+                currentChatController = null;
+                toggleInputState(false);
+                Prism.highlightAll();
+            }
+        }
+    }, true);
+
+    // --- COLLECTION FILES MODAL ---
+    window.openCollectionFilesModal = async function() {
+        if (!activeCollectionId) return;
+        const modal = document.getElementById("collection-files-modal");
+        const listDiv = document.getElementById("collection-files-list");
+        
+        listDiv.innerHTML = `<div class="p-8 text-center"><i data-lucide="loader-2" class="h-6 w-6 animate-spin mx-auto text-brand-500 mb-3"></i><p class="text-sm text-gray-400">Loading files...</p></div>`;
+        lucide.createIcons();
+        
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        
+        try {
+            const res = await fetch(`${API_BASE}/collections/${activeCollectionId}/files`);
+            const filesData = await res.json();
+            
+            if (filesData.length === 0) {
+                listDiv.innerHTML = `<p class="text-gray-400 text-center py-4">No files in this collection.</p>`;
+                return;
+            }
+            
+            let html = '<div class="flex flex-col gap-2">';
+            for(const f of filesData) {
+                html += `
+                    <div class="flex items-center justify-between p-3 glass-card rounded-lg border border-darkBorder/50 group">
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="file-text" class="h-4 w-4 text-brand-400"></i>
+                            <div>
+                                <p class="text-sm text-white font-medium">${f.filename}</p>
+                                <p class="text-[10px] text-gray-500">Status: ${f.status} | Size: ${(f.file_size/1024).toFixed(0)} KB</p>
+                            </div>
+                        </div>
+                        <button onclick="window.removeFileFromCollection('${f.id}')" class="p-2 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition" title="Remove from Collection">
+                            <i data-lucide="trash-2" class="h-4 w-4"></i>
+                        </button>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            listDiv.innerHTML = html;
+            lucide.createIcons();
+        } catch(e) {
+            listDiv.innerHTML = `<p class="text-red-400 text-center py-4">Error loading files.</p>`;
+        }
+    };
+    
+    window.closeCollectionFilesModal = function() {
+        const modal = document.getElementById("collection-files-modal");
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    };
+
+    window.removeFileFromCollection = async function(fileId) {
+        if (!activeCollectionId) return;
+        if (!confirm("Are you sure you want to remove this file from the collection?")) return;
+        
+        try {
+            const res = await fetch(`${API_BASE}/collections/${activeCollectionId}/files/${fileId}`, { method: "DELETE" });
+            if (res.ok) {
+                showToast("File Removed", "File removed from collection.", "success");
+                // Refresh the modal
+                window.openCollectionFilesModal();
+            } else {
+                showToast("Error", "Could not remove file.", "error");
+            }
+        } catch(err) {
+            console.error(err);
+            showToast("Error", "Could not remove file.", "error");
+        }
+    };
+}
+</script>
+
+</body>
 </html>

@@ -64,6 +64,49 @@ def init_db():
         )
     """)
     
+    # 5. Collections Table
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS collections (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    
+    # 6. Collection Files Mapping
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS collection_files (
+            collection_id TEXT NOT NULL,
+            file_id TEXT NOT NULL,
+            PRIMARY KEY (collection_id, file_id),
+            FOREIGN KEY (collection_id) REFERENCES collections (id) ON DELETE CASCADE,
+            FOREIGN KEY (file_id) REFERENCES files (id) ON DELETE CASCADE
+        )
+    """)
+    
+    # 7. Collection Chat Sessions
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS collection_sessions (
+            id TEXT PRIMARY KEY,
+            collection_id TEXT NOT NULL UNIQUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (collection_id) REFERENCES collections (id) ON DELETE CASCADE
+        )
+    """)
+    
+    # 8. Collection Messages
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS collection_messages (
+            id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            sources TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (session_id) REFERENCES collection_sessions (id) ON DELETE CASCADE
+        )
+    """)
+    
     conn.commit()
     conn.close()
 
@@ -254,3 +297,98 @@ def clear_chat_history(file_id: str):
         conn.commit()
         
     conn.close()
+
+# --- COLLECTION OPERATIONS ---
+
+def create_collection(collection_id: str, name: str) -> dict:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    now = datetime.utcnow().isoformat()
+    cursor.execute("INSERT INTO collections (id, name, created_at) VALUES (?, ?, ?)", (collection_id, name, now))
+    conn.commit()
+    conn.close()
+    return {"id": collection_id, "name": name, "created_at": now}
+
+def list_collections() -> list:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM collections ORDER BY created_at DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def delete_collection(collection_id: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("PRAGMA foreign_keys = ON")
+    cursor.execute("DELETE FROM collections WHERE id = ?", (collection_id,))
+    conn.commit()
+    conn.close()
+
+def add_file_to_collection(collection_id: str, file_id: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO collection_files (collection_id, file_id) VALUES (?, ?)", (collection_id, file_id))
+        conn.commit()
+    except Exception:
+        pass # Already exists
+    finally:
+        conn.close()
+
+def remove_file_from_collection(collection_id: str, file_id: str):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM collection_files WHERE collection_id = ? AND file_id = ?", (collection_id, file_id))
+    conn.commit()
+    conn.close()
+
+def get_collection_files(collection_id: str) -> list:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT f.* 
+        FROM files f
+        JOIN collection_files cf ON f.id = cf.file_id
+        WHERE cf.collection_id = ?
+    """, (collection_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_or_create_collection_session(collection_id: str) -> str:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM collection_sessions WHERE collection_id = ?", (collection_id,))
+    row = cursor.fetchone()
+    if row:
+        session_id = row["id"]
+    else:
+        session_id = str(uuid.uuid4())
+        now = datetime.utcnow().isoformat()
+        cursor.execute("INSERT INTO collection_sessions (id, collection_id, created_at) VALUES (?, ?, ?)", (session_id, collection_id, now))
+        conn.commit()
+    conn.close()
+    return session_id
+
+def add_collection_message(session_id: str, role: str, content: str, sources: list = None) -> dict:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    msg_id = str(uuid.uuid4())
+    sources_str = json.dumps(sources) if sources else None
+    now = datetime.utcnow().isoformat()
+    cursor.execute("""
+        INSERT INTO collection_messages (id, session_id, role, content, sources, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (msg_id, session_id, role, content, sources_str, now))
+    conn.commit()
+    conn.close()
+    return {"id": msg_id, "session_id": session_id, "role": role, "content": content, "sources": sources, "created_at": now}
+
+def get_collection_messages(session_id: str) -> list:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM collection_messages WHERE session_id = ? ORDER BY created_at ASC", (session_id,))
+    rows = cursor.fetchall()
+    conn.close()
+    return [{"id": r["id"], "role": r["role"], "content": r["content"], "sources": json.loads(r["sources"]) if r["sources"] else None, "created_at": r["created_at"]} for r in rows]

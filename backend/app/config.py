@@ -19,9 +19,10 @@ os.makedirs(INDEX_DIR, exist_ok=True)
 EMBEDDING_MODEL_NAME = "BAAI/bge-base-en-v1.5"
 RERANKER_MODEL_NAME = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
+
 # OpenRouter Configuration
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-OPENROUTER_MODEL_NAME = "openai/gpt-oss-20b:free"
+OPENROUTER_MODEL_NAME = "nvidia/nemotron-3-super-120b-a12b:free"
 
 # Ollama Configuration (Local fallback)
 OLLAMA_MODEL_NAME = "mistral"
