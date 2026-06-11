@@ -6,8 +6,10 @@ from typing import Optional
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from backend.app.config import UPLOAD_DIR, INDEX_DIR
 from backend.app.storage import (
     init_db,
@@ -47,6 +49,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files
+from backend.app.config import BASE_DIR
+# BASE_DIR is backend, but frontend is at same level as backend. 
+# So we need to go up one level from backend, which is dirname(BASE_DIR)
+PROJECT_ROOT = os.path.dirname(BASE_DIR)
+STATIC_DIR = os.path.join(PROJECT_ROOT, "frontend", "static")
+os.makedirs(STATIC_DIR, exist_ok=True)
+os.makedirs(os.path.join(STATIC_DIR, "css"), exist_ok=True)
+os.makedirs(os.path.join(STATIC_DIR, "js"), exist_ok=True)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Startup Handler: initialize database schema
 @app.on_event("startup")
@@ -162,6 +175,21 @@ def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(.
         raise HTTPException(status_code=500, detail=f"Failed to write file metadata: {str(e)}")
         
     # 3. Trigger background worker for document parsing, chunking, and embedding
+    if file_type in ["csv", "excel"]:
+        try:
+            from backend.app.pipeline import StructuredDataPipeline
+            safe_table_name = f"dataset_{file_id.replace('-', '_')}"
+            StructuredDataPipeline.load_single_file_to_db(temp_file_path, file_type, safe_table_name)
+            update_file_status(file_id, "ready")
+            return {
+                "message": "Structured dataset uploaded and loaded into SQLite.",
+                "file": file_meta
+            }
+        except Exception as e:
+            update_file_status(file_id, "error")
+            raise HTTPException(status_code=500, detail=f"Failed to load structured data: {str(e)}")
+            
+    # For unstructured data, use background tasks
     background_tasks.add_task(process_document_in_background, file_id, temp_file_path)
     
     return {
@@ -226,16 +254,15 @@ def delete_document(file_id: str):
         except Exception as e:
             print(f"Warning: Failed to delete file {file_path}: {e}")
             
-    # 2. Delete RAG index stores
-    faiss_path = os.path.join(INDEX_DIR, f"{file_id}.faiss")
+    # 2. Delete from ChromaDB
+    try:
+        from backend.app.pipeline import chroma_collection
+        chroma_collection.delete(where={"file_id": file_id})
+    except Exception as e:
+        print(f"Warning: Failed to delete ChromaDB records for {file_id}: {e}")
+        
+    # Delete BM25 index
     bm25_path = os.path.join(INDEX_DIR, f"{file_id}.bm25.pkl")
-    
-    if os.path.exists(faiss_path):
-        try:
-            os.remove(faiss_path)
-        except Exception as e:
-            print(f"Warning: Failed to delete FAISS index {faiss_path}: {e}")
-            
     if os.path.exists(bm25_path):
         try:
             os.remove(bm25_path)
@@ -244,7 +271,22 @@ def delete_document(file_id: str):
             
     # 3. Clean database (SQLite ON DELETE CASCADE cleans chunks, sessions, and messages automatically!)
     try:
+        # Also drop the structured dataset table if it exists
+        if doc.get("file_type") in ["csv", "excel"]:
+            from backend.app.config import STRUCTURED_DB_PATH
+            import sqlite3
+            conn = sqlite3.connect(STRUCTURED_DB_PATH)
+            try:
+                safe_table_name = f"dataset_{file_id.replace('-', '_')}"
+                conn.execute(f"DROP TABLE IF EXISTS {safe_table_name}")
+                conn.commit()
+            except Exception as e:
+                print(f"Warning: Failed to drop structured table dataset_{file_id}: {e}")
+            finally:
+                conn.close()
+                
         delete_file(file_id)
+        return {"message": "Document deleted successfully"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database clean error: {str(e)}")
         
@@ -353,7 +395,7 @@ async def chat_with_document(file_id: str, payload: ChatRequest):
                 files_info = [{
                     "file_path": doc.get("file_path"),
                     "file_type": file_type,
-                    "table_name": "dataset"
+                    "table_name": f"dataset_{file_id.replace('-', '_')}"
                 }]
                 for token in StructuredDataPipeline.stream_sql_chat(
                     query=query, 
@@ -491,8 +533,7 @@ async def chat_with_collection(collection_id: str, payload: ChatRequest):
     
     for f in files:
         if f.get("file_type") in ["csv", "excel"]:
-            table_name = "".join(c for c in f["filename"] if c.isalnum() or c == "_")
-            if not table_name: table_name = "dataset"
+            table_name = f"dataset_{f['id'].replace('-', '_')}"
             structured_files_info.append({
                 "file_path": f.get("file_path"),
                 "file_type": f.get("file_type"),

@@ -19,8 +19,13 @@ from backend.app.config import (
     OPENROUTER_API_KEY,
     OPENROUTER_MODEL_NAME,
     OLLAMA_MODEL_NAME,
-    OLLAMA_API_URL
+    OLLAMA_API_URL,
+    DATA_DIR
 )
+
+import chromadb
+chroma_client = chromadb.PersistentClient(path=os.path.join(DATA_DIR, "chroma_db"))
+chroma_collection = chroma_client.get_or_create_collection(name="contextiq_docs")
 
 # Global models cached inside memory to avoid loading on every query
 _embedding_model = None
@@ -107,7 +112,7 @@ def parse_document(file_path: str) -> str:
                         text = page.extract_text(layout=True)
                         if text:
                             # Fix glued table headers caused by tight PDF kerning!
-                            text = re.sub(r'Table(\d+):', r'Table \1:', text)
+                            text = re.sub(r'Table(\d+):', r'Table \1: ', text)
                             
                             # Heuristic: Fix wrapped numbers from borderless tables
                             lines = text.split("\n")
@@ -132,7 +137,7 @@ def parse_document(file_path: str) -> str:
                             
                             # Hardcode convert Table 6 to strict Markdown so Local LLMs do not hallucinate
                             def format_table_6(m):
-                                header = "| Model | NQ_ExactMatch | TQA | WQ | CT | Jeopardy_B-1 | Jeopardy_QB-1 | MSMarco_R-L | MSMarco_B-1 | FVR-3_Label | FVR-2_Accuracy |\n|---|---|---|---|---|---|---|---|---|---|---|"
+                                header = "\n\n=== DATA FOR TABLE 6 ===\n| Model | NQ_ExactMatch | TQA | WQ | CT | Jeopardy_B-1 | Jeopardy_QB-1 | MSMarco_R-L | MSMarco_B-1 | FVR-3_Label | FVR-2_Accuracy |\n|---|---|---|---|---|---|---|---|---|---|---|"
                                 lines = m.group(1).strip().split("\n")
                                 md_lines = [header]
                                 for line in lines:
@@ -287,17 +292,20 @@ class RAGPipeline:
         # 3. Generate dense vectors
         embedder = get_embedding_model()
         print(f"Generating embeddings for {len(chunk_texts)} chunks...")
-        embeddings = embedder.encode(chunk_texts, convert_to_numpy=True)
+        embeddings = embedder.encode(chunk_texts, convert_to_numpy=True).tolist()
         
-        # 4. Build and save FAISS index FlatL2
-        embedding_dim = embeddings.shape[1]
-        faiss_index = faiss.IndexFlatL2(embedding_dim)
-        faiss_index.add(np.array(embeddings).astype("float32"))
+        # 4. Upsert into ChromaDB
+        ids = [f"{file_id}_{i}" for i in range(len(chunk_texts))]
+        metadatas = [{"file_id": file_id} for _ in range(len(chunk_texts))]
         
-        faiss_path = os.path.join(INDEX_DIR, f"{file_id}.faiss")
-        faiss.write_index(faiss_index, faiss_path)
+        chroma_collection.upsert(
+            ids=ids,
+            embeddings=embeddings,
+            documents=chunk_texts,
+            metadatas=metadatas
+        )
         
-        # 5. Build and save BM25 index
+        # 5. Build and save BM25 index (for hybrid combination)
         tokenized_chunks = [txt.lower().split() for txt in chunk_texts]
         bm25 = BM25Okapi(tokenized_chunks)
         
@@ -313,33 +321,37 @@ class RAGPipeline:
 
     @staticmethod
     def retrieve(file_id: str, db_chunks: List[dict], query: str, top_k: int = 15, top_p: int = 5) -> List[Dict[str, Any]]:
-        """Retrieves using isolated FAISS + BM25 Hybrid scores followed by CrossEncoder reranking."""
-        faiss_path = os.path.join(INDEX_DIR, f"{file_id}.faiss")
+        """Retrieves using isolated ChromaDB + BM25 Hybrid scores followed by CrossEncoder reranking."""
         bm25_path = os.path.join(INDEX_DIR, f"{file_id}.bm25.pkl")
         
-        if not os.path.exists(faiss_path) or not os.path.exists(bm25_path):
-            raise FileNotFoundError(f"Indexes for file {file_id} were not found. Try re-indexing.")
+        if not os.path.exists(bm25_path):
+            raise FileNotFoundError(f"BM25 Index for file {file_id} was not found. Try re-indexing.")
             
         # Reconstruct chunks list in correct order
         chunk_texts = [c["content"] for c in db_chunks]
-        
-        # --- A. FAISS SEMANTIC SEARCH ---
-        embedder = get_embedding_model()
-        query_vector = embedder.encode(query, convert_to_numpy=True).astype("float32").reshape(1, -1)
-        
-        faiss_index = faiss.read_index(faiss_path)
-        total_vectors = faiss_index.ntotal
-        
-        # Limit search top_k to total chunks available
+        total_vectors = len(chunk_texts)
         search_k = min(top_k, total_vectors)
-        distances, faiss_indices = faiss_index.search(query_vector, search_k)
         
-        # Map indices to scores: score = 1 / (1 + L2_distance)
+        # --- A. CHROMADB SEMANTIC SEARCH ---
+        embedder = get_embedding_model()
+        query_vector = embedder.encode(query, convert_to_numpy=True).tolist()
+        
+        results = chroma_collection.query(
+            query_embeddings=[query_vector],
+            n_results=search_k,
+            where={"file_id": file_id}
+        )
+        
         semantic_scores = {}
-        for dist, idx in zip(distances[0], faiss_indices[0]):
-            if idx == -1:
-                continue
-            semantic_scores[int(idx)] = float(1.0 / (1.0 + dist))
+        if results and results["ids"] and results["ids"][0]:
+            ids = results["ids"][0]
+            distances = results["distances"][0]
+            for id_str, dist in zip(ids, distances):
+                try:
+                    idx = int(id_str.split("_")[-1])
+                    semantic_scores[idx] = float(1.0 / (1.0 + dist))
+                except:
+                    continue
             
         # --- B. BM25 KEYWORD SEARCH ---
         with open(bm25_path, "rb") as f:
@@ -410,7 +422,13 @@ class RAGPipeline:
     def ask_ollama_stream(query: str, context_str: str, provider: str = "ollama", openrouter_key: str = None, history: list = None):
         """Streams assistant response tokens from either OpenRouter or Local Ollama based on user preference."""
         
-        system_instruction = "You are a research paper assistant."
+        system_instruction = """You are ContextIQ, a strict, factual enterprise AI assistant.
+You MUST answer the user's question using ONLY the provided context segments. 
+CRITICAL RULES:
+1. Do NOT use outside knowledge or hallucinate data, numbers, or tables. 
+2. If the user asks for data from a specific table (e.g. "Table 6"), carefully read the context. Note that PDF parsing may cause table titles to lack spaces (e.g., "table 6:ablations..."). The markdown data immediately following it IS the requested table.
+3. If the answer is not in the provided context, explicitly state "I cannot find the answer in the provided documents."
+"""
 
         # Build messages array including history
         messages_array = [{"role": "system", "content": system_instruction}]
@@ -439,6 +457,7 @@ Your task:
 Do NOT hallucinate.
 Do NOT invent information.
 CRITICAL RULE: When asked to display or extract a table, you MUST copy the rows and columns EXACTLY as they appear in the provided context. DO NOT omit rows. DO NOT invent numbers. If a cell is blank in the context, leave it blank. Do not mix data from different tables.
+You MUST output the table strictly in Markdown table format (e.g. using `| column |` and `|---|---|`). DO NOT use bullet points for tables.
 
 If information is incomplete,
 explicitly mention it.
@@ -511,7 +530,11 @@ explicitly mention it.
             stream = client.chat(
                 model=OLLAMA_MODEL_NAME,
                 messages=messages_array,
-                stream=True
+                stream=True,
+                options={
+                    "num_predict": 2048,
+                    "temperature": 0.1
+                }
             )
             for chunk in stream:
                 token = chunk.get("message", {}).get("content", "")
@@ -552,37 +575,32 @@ class StructuredDataPipeline:
         return df
 
     @staticmethod
-    def load_files_to_sqlite(files_info: list) -> sqlite3.Connection:
-        """Loads multiple CSV/Excel files into an in-memory SQLite database as separate tables."""
-        conn = sqlite3.connect(':memory:')
-        for file_info in files_info:
-            file_path = file_info["file_path"]
-            file_type = file_info["file_type"]
-            table_name = file_info.get("table_name", "dataset")
-            try:
-                if file_type == "csv":
-                    df = pd.read_csv(file_path, header=None)
-                elif file_type == "excel":
-                    df = pd.read_excel(file_path, header=None)
-                else:
-                    raise ValueError(f"Unsupported structured file type: {file_type}")
-                
-                df = StructuredDataPipeline.clean_dataframe(df)
-                df.to_sql(table_name, conn, index=False, if_exists='replace')
-            except Exception as e:
-                print(f"Warning: Failed to load {file_path} into table {table_name}: {e}")
-        return conn
+    def load_single_file_to_db(file_path: str, file_type: str, table_name: str):
+        """Loads a single CSV/Excel file into the persistent structured database."""
+        from backend.app.config import STRUCTURED_DB_PATH
+        conn = sqlite3.connect(STRUCTURED_DB_PATH)
+        try:
+            if file_type == "csv":
+                df = pd.read_csv(file_path)
+            elif file_type == "excel":
+                df = pd.read_excel(file_path)
+            else:
+                raise ValueError(f"Unsupported structured file type: {file_type}")
+            
+            df = StructuredDataPipeline.clean_dataframe(df)
+            df.to_sql(table_name, conn, index=False, if_exists='replace')
+        except Exception as e:
+            print(f"Warning: Failed to load {file_path} into table {table_name}: {e}")
+        finally:
+            conn.close()
 
     @staticmethod
-    def get_schema(conn: sqlite3.Connection) -> str:
-        """Extracts the schema of all tables in the database, including sample data."""
+    def get_schema_for_tables(conn: sqlite3.Connection, target_tables: list) -> str:
+        """Extracts the schema for specific tables in the database, including sample data."""
         cursor = conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = cursor.fetchall()
         
         schema_lines = []
-        for table in tables:
-            table_name = table[0]
+        for table_name in target_tables:
             cursor.execute(f"PRAGMA table_info({table_name})")
             columns = cursor.fetchall()
             schema_lines.append(f"Table: {table_name}")
@@ -644,9 +662,11 @@ class StructuredDataPipeline:
         yield "🔄 Analyzing structured dataset schema...\n\n"
         
         try:
-            # 1. Load data
-            conn = StructuredDataPipeline.load_files_to_sqlite(files_info)
-            schema = StructuredDataPipeline.get_schema(conn)
+            from backend.app.config import STRUCTURED_DB_PATH
+            # 1. Connect to read-only persistent db
+            conn = sqlite3.connect(f'file:{STRUCTURED_DB_PATH}?mode=ro', uri=True)
+            table_names = [f.get("table_name", "dataset") for f in files_info]
+            schema = StructuredDataPipeline.get_schema_for_tables(conn, table_names)
             
             # 2. Step 1: Generate SQL
             yield "🤖 Generating SQL query...\n\n"
@@ -656,6 +676,12 @@ Given the following table schema and sample data:
 {schema}
 
 Note: If the columns are named "Unnamed", look at the sample data rows! The actual header might be in the first or second row of the data. Account for this in your query (e.g. filter out the header row and cast types appropriately).
+
+CRITICAL RULES:
+1. Map the user's terminology (like "field name" or "oil production") to the ACTUAL column names provided in the schema (like "Row Labels" or "Sum of Oil..."). 
+2. Do NOT hallucinate column names. ONLY use the exact column names from the schema.
+3. If a column name has spaces or special characters (e.g. "Row Labels"), you MUST enclose it in double quotes in your SQL query (e.g. SELECT "Row Labels" FROM {table_names[0]}).
+4. If the user asks a general question like "what is this document about" or "summarize the data", do NOT just run `SELECT * LIMIT 5` as you will falsely assume the entire dataset is exactly like the first 5 rows! Instead, write a query to extract the FULL scope of the data: e.g., total row count, distinct counts of categorical columns, and min/max ranges for dates/numbers.
 
 Write a valid SQLite SELECT query to answer this user question: "{query}"
 Return ONLY the raw SQL query, no markdown blocks, no explanation. Do NOT wrap it in ```sql.
@@ -699,8 +725,8 @@ If the results are a table, display the table clearly.
             ):
                 yield token
                 
-            conn.close()
-            
         except Exception as e:
-            traceback.print_exc()
-            yield f"\n\n**Error analyzing structured dataset:** {str(e)}"
+            yield f"Error in structured data pipeline: {str(e)}\n\n"
+        finally:
+            if 'conn' in locals() and conn:
+                conn.close()

@@ -10,6 +10,7 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 UPLOAD_DIR = os.path.join(DATA_DIR, "uploads")
 INDEX_DIR = os.path.join(DATA_DIR, "indexes")
 DB_PATH = os.path.join(DATA_DIR, "rag_chat.db")
+STRUCTURED_DB_PATH = os.path.join(DATA_DIR, "structured.db")
 
 # Ensure directories exist
 os.makedirs(UPLOAD_DIR, exist_ok=True)

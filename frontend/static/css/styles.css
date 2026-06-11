@@ -1,0 +1,203 @@
+body {
+    font-family: 'Outfit', 'Inter', sans-serif;
+    background-color: #090a0f;
+    color: #e2e8f0;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #090a0f;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #262a3a;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #3b3f54;
+}
+
+/* Markdown Styles overriding */
+.prose p {
+    margin-bottom: 0.8rem;
+    line-height: 1.6;
+}
+
+.prose ul,
+.prose ol {
+    margin-left: 1.5rem;
+    margin-bottom: 0.8rem;
+    list-style-type: disc;
+}
+
+.prose ol {
+    list-style-type: decimal;
+}
+
+.prose code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+    background: #1a1d29;
+    padding: 0.15rem 0.3rem;
+    border-radius: 4px;
+    color: #f472b6;
+}
+
+.prose pre code {
+    background: none;
+    padding: 0;
+    color: inherit;
+}
+
+.prose pre {
+    background: #11131c;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #262a3a;
+    margin-top: 0.5rem;
+    margin-bottom: 1rem;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.prose h1,
+.prose h2,
+.prose h3 {
+    font-weight: 600;
+    color: #fff;
+    margin-top: 1.2rem;
+    margin-bottom: 0.6rem;
+}
+
+.prose h1 {
+    font-size: 1.5rem;
+}
+
+.prose h2 {
+    font-size: 1.3rem;
+}
+
+.prose h3 {
+    font-size: 1.1rem;
+}
+
+.prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.9em;
+    text-align: left;
+}
+
+.prose th {
+    background-color: #1a1d29;
+    border: 1px solid #262a3a;
+    padding: 8px 12px;
+    font-weight: 600;
+    color: #fff;
+}
+
+.prose td {
+    border: 1px solid #262a3a;
+    padding: 8px 12px;
+}
+
+.prose tr:nth-child(even) {
+    background-color: rgba(38, 42, 58, 0.2);
+}
+
+.prose blockquote {
+    border-left: 4px solid #5c7aff;
+    padding-left: 1rem;
+    color: #94a3b8;
+    font-style: italic;
+    margin: 1rem 0;
+}
+
+/* Glassmorphic elements */
+.glass-panel {
+    background: rgba(17, 19, 28, 0.75);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-card {
+    background: rgba(26, 29, 41, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+    background: rgba(26, 29, 41, 0.85);
+    border-color: rgba(92, 122, 255, 0.2);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* Animations */
+@keyframes pulse-ring {
+    0% {
+        transform: scale(0.95);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(0.95);
+        opacity: 0.5;
+    }
+}
+
+.pulse-ring {
+    animation: pulse-ring 2s infinite ease-in-out;
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Streaming dot cursor */
+.typing-cursor::after {
+    content: "▋";
+    display: inline-block;
+    margin-left: 3px;
+    color: #5c7aff;
+    font-weight: 700;
+    animation: blink 0.9s infinite;
+}
+
+@keyframes blink {
+
+    0%,
+    100% {
+        opacity: 0;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
