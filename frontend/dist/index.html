@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Antigravity - Isolated RAG Chatbot</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 850: '#141d2f', 900: '#0f172a', 950: '#0a0f1c' },
+                        azure: { 500: '#3b82f6', 600: '#2563eb' }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Outfit', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .glass-panel {
+                @apply bg-slate-900/60 backdrop-blur-md border border-white/5;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+        }
+        body {
+            background-color: #0a0f1c;
+            color: #e2e8f0;
+            margin: 0;
+            overflow: hidden;
+        }
+        
+        /* Markdown Rendering Styles */
+        .prose pre { background-color: #1e293b; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; border: 1px solid rgba(255,255,255,0.1); }
+        .prose code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.875em; }
+        .prose p { margin-bottom: 0.75rem; }
+        .prose p:last-child { margin-bottom: 0; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+        .prose ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+        .prose strong { font-weight: 600; color: #f8fafc; }
+        
+        .prose table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+        .prose th, .prose td { border: 1px solid #334155; padding: 0.5rem; text-align: left; }
+        .prose th { background-color: #1e293b; color: #f8fafc; font-weight: 600; }
+        .prose tr:nth-child(even) { background-color: #0f172a; }
+        .prose tr:nth-child(odd) { background-color: #1e293b; }
+        
+        /* Source Citation Tag */
+        .citation-tag {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #1e293b;
+            color: #38bdf8;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.1rem 0.3rem;
+            border-radius: 4px;
+            margin: 0 0.2rem;
+            cursor: pointer;
+            border: 1px solid #334155;
+            transition: all 0.2s;
+        }
+        .citation-tag:hover {
+            background-color: #334155;
+            border-color: #38bdf8;
+        }
+    </style>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Marked for Markdown Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+        
+        // --- COMPONENTS ---
+        
+        // Icon Wrapper
+        const Icon = ({ name, size = 20, className = "" }) => {
+            const iconRef = useRef(null);
+            
+            useEffect(() => {
+                if (iconRef.current) {
+                    iconRef.current.innerHTML = '';
+                    const icon = lucide.icons[name];
+                    if (icon) {
+                        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                        svg.setAttribute('width', size);
+                        svg.setAttribute('height', size);
+                        svg.setAttribute('viewBox', '0 0 24 24');
+                        svg.setAttribute('fill', 'none');
+                        svg.setAttribute('stroke', 'currentColor');
+                        svg.setAttribute('stroke-width', '2');
+                        svg.setAttribute('stroke-linecap', 'round');
+                        svg.setAttribute('stroke-linejoin', 'round');
+                        svg.setAttribute('class', className);
+                        
+                        icon[1].forEach(child => {
+                            const childNode = document.createElementNS('http://www.w3.org/2000/svg', child[0]);
+                            Object.entries(child[1]).forEach(([key, value]) => {
+                                childNode.setAttribute(key, value);
+                            });
+                            svg.appendChild(childNode);
+                        });
+                        
+                        iconRef.current.appendChild(svg);
+                    }
+                }
+            }, [name, size, className]);
+            
+            return <span ref={iconRef} className="inline-flex items-center justify-center"></span>;
+        };
+
+        const MarkdownContent = ({ content }) => {
+            // Function to transform citations like [Source 1] into interactive spans
+            const renderContent = () => {
+                // First parse standard markdown to HTML
+                let html = marked.parse(content || "");
+                
+                // Then regex replace citations [Source X] with custom span elements
+                html = html.replace(/\[Source (\d+)\]/g, (match, num) => {
+                    return `<span class="citation-tag" title="Source ${num}">src:${num}</span>`;
+                });
+                
+                return { __html: html };
+            };
+            
+            return <div className="prose prose-invert max-w-none" dangerouslySetInnerHTML={renderContent()} />;
+        };
+
+        const SourceCard = ({ source, index }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const score = typeof source.score === 'number' ? source.score.toFixed(3) : source.score;
+            
+            return (
+                <div className="mt-2 border border-slate-700 rounded-lg overflow-hidden bg-slate-800/50">
+                    <button 
+                        onClick={() => setIsOpen(!isOpen)} 
+                        className="w-full flex items-center justify-between p-2 text-xs hover:bg-slate-700/50 transition-colors"
+                    >
+                        <div className="flex items-center space-x-2 text-slate-300">
+                            <Icon name="file-text" size={14} className="text-azure-500" />
+                            <span className="font-semibold">Source {index + 1}</span>
+                            <span className="text-slate-500">•</span>
+                            <span className="text-slate-400">Score: {score}</span>
+                        </div>
+                        <Icon name={isOpen ? "chevron-up" : "chevron-down"} size={14} className="text-slate-400" />
+                    </button>
+                    {isOpen && (
+                        <div className="p-3 border-t border-slate-700 text-xs text-slate-300 bg-slate-900/80 max-h-48 overflow-y-auto">
+                            {source.content}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
+        const MainApp = () => {
+            const [files, setFiles] = useState([]);
+            const [activeFileId, setActiveFileId] = useState(null);
+            const [messages, setMessages] = useState([]);
+            const [inputValue, setInputValue] = useState("");
+            const [isUploading, setIsUploading] = useState(false);
+            const [isGenerating, setIsGenerating] = useState(false);
+            const [searchQuery, setSearchQuery] = useState("");
+            
+            const messagesEndRef = useRef(null);
+            const fileInputRef = useRef(null);
+
+            const fetchFiles = async () => {
+                try {
+                    const res = await fetch("/api/files");
+                    const data = await res.json();
+                    setFiles(data);
+                } catch (e) {
+                    console.error("Failed to fetch files", e);
+                }
+            };
+
+            const fetchHistory = async (fileId) => {
+                if (!fileId) return;
+                try {
+                    const res = await fetch(`/api/files/${fileId}/messages`);
+                    const data = await res.json();
+                    setMessages(data);
+                } catch (e) {
+                    console.error("Failed to fetch history", e);
+                }
+            };
+
+            useEffect(() => {
+                fetchFiles();
+                // Periodic poll to check file status if there are processing files
+                const interval = setInterval(() => {
+                    setFiles(prev => {
+                        const hasProcessing = prev.some(f => f.status === 'processing');
+                        if (hasProcessing) fetchFiles();
+                        return prev;
+                    });
+                }, 3000);
+                return () => clearInterval(interval);
+            }, []);
+
+            useEffect(() => {
+                if (activeFileId) {
+                    fetchHistory(activeFileId);
+                } else {
+                    setMessages([]);
+                }
+            }, [activeFileId]);
+
+            const scrollToBottom = () => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+            };
+
+            useEffect(() => {
+                scrollToBottom();
+            }, [messages]);
+
+            const handleFileUpload = async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const formData = new FormData();
+                formData.append("file", file);
+                
+                setIsUploading(true);
+                try {
+                    const res = await fetch("/api/files/upload", {
+                        method: "POST",
+                        body: formData
+                    });
+                    if (res.ok) {
+                        const newFile = await res.json();
+                        setFiles([newFile, ...files]);
+                        setActiveFileId(newFile.id);
+                    } else {
+                        alert("Upload failed.");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("Upload error.");
+                } finally {
+                    setIsUploading(false);
+                    e.target.value = '';
+                }
+            };
+
+            const handleDeleteFile = async (e, id) => {
+                e.stopPropagation();
+                if (confirm("Are you sure you want to delete this file and its chat history?")) {
+                    try {
+                        const res = await fetch(`/api/files/${id}`, { method: "DELETE" });
+                        if (res.ok) {
+                            setFiles(files.filter(f => f.id !== id));
+                            if (activeFileId === id) setActiveFileId(null);
+                        }
+                    } catch (err) {
+                        console.error("Delete failed", err);
+                    }
+                }
+            };
+
+            const handleSendMessage = async () => {
+                if (!inputValue.trim() || !activeFileId || isGenerating) return;
+                
+                const userMsg = inputValue.trim();
+                setInputValue("");
+                
+                // Add temporary user message
+                const tempUserMsg = { id: Date.now().toString(), role: "user", content: userMsg, sources: null };
+                const tempAsstMsg = { id: (Date.now() + 1).toString(), role: "assistant", content: "", sources: null, isStreaming: true };
+                
+                setMessages(prev => [...prev, tempUserMsg, tempAsstMsg]);
+                setIsGenerating(true);
+                
+                try {
+                    const response = await fetch(`/api/files/${activeFileId}/chat`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ query: userMsg })
+                    });
+                    
+                    if (!response.ok) {
+                        const err = await response.json();
+                        throw new Error(err.detail || "Server error");
+                    }
+                    
+                    // Handle SSE Stream
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    
+                    let assistantContent = "";
+                    let finalSources = null;
+                    
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        const chunkStr = decoder.decode(value, { stream: true });
+                        const lines = chunkStr.split('\n');
+                        
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const dataStr = line.substring(6);
+                                if (!dataStr.trim()) continue;
+                                
+                                try {
+                                    const data = JSON.parse(dataStr);
+                                    if (data.is_final) {
+                                        finalSources = data.sources;
+                                    } else if (data.token) {
+                                        assistantContent += data.token;
+                                        // Update streaming message in state
+                                        setMessages(prev => {
+                                            const newMsgs = [...prev];
+                                            const lastIdx = newMsgs.length - 1;
+                                            if (newMsgs[lastIdx].role === "assistant" && newMsgs[lastIdx].isStreaming) {
+                                                newMsgs[lastIdx] = { ...newMsgs[lastIdx], content: assistantContent };
+                                            }
+                                            return newMsgs;
+                                        });
+                                    }
+                                } catch (e) {
+                                    console.error("Error parsing SSE JSON:", e, dataStr);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Finalize message
+                    setMessages(prev => {
+                        const newMsgs = [...prev];
+                        const lastIdx = newMsgs.length - 1;
+                        if (newMsgs[lastIdx].role === "assistant") {
+                            newMsgs[lastIdx] = { 
+                                ...newMsgs[lastIdx], 
+                                content: assistantContent, 
+                                sources: finalSources,
+                                isStreaming: false 
+                            };
+                        }
+                        return newMsgs;
+                    });
+                    
+                } catch (error) {
+                    console.error("Chat error", error);
+                    setMessages(prev => {
+                        const newMsgs = [...prev];
+                        const lastIdx = newMsgs.length - 1;
+                        if (newMsgs[lastIdx].role === "assistant") {
+                            newMsgs[lastIdx] = { 
+                                ...newMsgs[lastIdx], 
+                                content: newMsgs[lastIdx].content + `\n\n**Error:** ${error.message}`, 
+                                isStreaming: false 
+                            };
+                        }
+                        return newMsgs;
+                    });
+                } finally {
+                    setIsGenerating(false);
+                }
+            };
+            
+            const handleKeyDown = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage();
+                }
+            };
+
+            const activeFile = files.find(f => f.id === activeFileId);
+            const filteredFiles = files.filter(f => f.filename.toLowerCase().includes(searchQuery.toLowerCase()));
+
+            return (
+                <div className="flex h-screen w-full font-sans antialiased bg-slate-950 text-slate-200">
+                    
+                    {/* SIDEBAR */}
+                    <div className="w-80 flex-shrink-0 flex flex-col bg-slate-900 border-r border-slate-800">
+                        {/* Header */}
+                        <div className="p-5 pb-4 border-b border-slate-800 flex items-center space-x-3">
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-azure-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-azure-500/20">
+                                <Icon name="bot" size={18} className="text-white" />
+                            </div>
+                            <h1 className="font-display font-bold text-xl tracking-wide bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">Antigravity</h1>
+                        </div>
+                        
+                        {/* Search & Upload */}
+                        <div className="p-4 space-y-3">
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Icon name="search" size={14} className="text-slate-500" />
+                                </div>
+                                <input 
+                                    type="text" 
+                                    placeholder="Search files..." 
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    className="w-full bg-slate-800/50 border border-slate-700 text-sm rounded-lg pl-9 pr-3 py-2 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-azure-500 focus:border-azure-500 transition-colors"
+                                />
+                            </div>
+                            
+                            <button 
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isUploading}
+                                className="w-full flex items-center justify-center space-x-2 bg-azure-600 hover:bg-azure-500 text-white text-sm font-medium py-2 px-4 rounded-lg transition-colors shadow-lg shadow-azure-900/20 disabled:opacity-50"
+                            >
+                                {isUploading ? <Icon name="loader-2" size={16} className="animate-spin" /> : <Icon name="upload-cloud" size={16} />}
+                                <span>{isUploading ? "Uploading..." : "Upload Document"}</span>
+                            </button>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                onChange={handleFileUpload} 
+                                className="hidden" 
+                                accept=".pdf,.txt,.docx,.md"
+                            />
+                        </div>
+                        
+                        {/* File List */}
+                        <div className="flex-1 overflow-y-auto px-3 space-y-1 pb-4 scrollbar-hide">
+                            <h2 className="px-2 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 mt-2">Your Documents</h2>
+                            
+                            {filteredFiles.length === 0 ? (
+                                <div className="px-2 py-6 text-center text-sm text-slate-500">
+                                    No documents found.
+                                </div>
+                            ) : (
+                                filteredFiles.map(file => (
+                                    <div 
+                                        key={file.id} 
+                                        onClick={() => setActiveFileId(file.id)}
+                                        className={`group relative flex items-center p-3 rounded-xl cursor-pointer transition-all ${activeFileId === file.id ? 'bg-slate-800 border border-slate-700 shadow-sm' : 'hover:bg-slate-800/50 border border-transparent'}`}
+                                    >
+                                        <div className={`p-2 rounded-lg mr-3 ${activeFileId === file.id ? 'bg-azure-500/20 text-azure-400' : 'bg-slate-800 text-slate-400'}`}>
+                                            <Icon name={file.file_type === '.pdf' ? 'file-text' : file.file_type === '.docx' ? 'file-code-2' : 'file'} size={18} />
+                                        </div>
+                                        <div className="flex-1 min-w-0 pr-6">
+                                            <p className={`text-sm font-medium truncate ${activeFileId === file.id ? 'text-white' : 'text-slate-300'}`}>
+                                                {file.filename}
+                                            </p>
+                                            <p className="text-xs text-slate-500 flex items-center space-x-2 mt-0.5">
+                                                {file.status === 'processing' ? (
+                                                    <span className="flex items-center text-amber-500"><Icon name="loader-2" size={10} className="animate-spin mr-1" /> Processing</span>
+                                                ) : file.status === 'error' ? (
+                                                    <span className="text-red-400">Error indexing</span>
+                                                ) : (
+                                                    <span>Ready • {(file.file_size / 1024).toFixed(1)} KB</span>
+                                                )}
+                                            </p>
+                                        </div>
+                                        
+                                        <button 
+                                            onClick={(e) => handleDeleteFile(e, file.id)}
+                                            className="absolute right-3 opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-700 rounded-md transition-all"
+                                        >
+                                            <Icon name="trash-2" size={14} />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                    
+                    {/* MAIN CHAT AREA */}
+                    <div className="flex-1 flex flex-col bg-[#0a0f1c] relative overflow-hidden">
+                        
+                        {activeFile ? (
+                            <>
+                                {/* Chat Header */}
+                                <div className="h-16 px-6 border-b border-slate-800/60 bg-slate-900/30 backdrop-blur-md flex items-center justify-between sticky top-0 z-10">
+                                    <div className="flex items-center space-x-3">
+                                        <span className="text-slate-400">Chatting with</span>
+                                        <span className="bg-slate-800 px-3 py-1 rounded-full text-sm font-medium text-azure-100 border border-slate-700">
+                                            {activeFile.filename}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center text-xs text-slate-500 space-x-4">
+                                        <div className="flex items-center"><div className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div> RAG Isolated Context Active</div>
+                                    </div>
+                                </div>
+                                
+                                {/* Messages */}
+                                <div className="flex-1 overflow-y-auto p-4 sm:p-6 scroll-smooth pb-32">
+                                    {messages.length === 0 ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-center max-w-lg mx-auto">
+                                            <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mb-6 shadow-xl border border-slate-700">
+                                                <Icon name="message-square" size={32} className="text-azure-400" />
+                                            </div>
+                                            <h2 className="text-2xl font-display font-semibold text-white mb-2">How can I help you?</h2>
+                                            <p className="text-slate-400 text-sm leading-relaxed">
+                                                Ask me anything about <strong>{activeFile.filename}</strong>. I will search the document and provide an accurate, grounded answer.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="max-w-4xl mx-auto space-y-6">
+                                            {messages.map((msg, idx) => (
+                                                <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                                    
+                                                    {msg.role === 'assistant' && (
+                                                        <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mr-3 flex-shrink-0 mt-1">
+                                                            <Icon name="bot" size={16} className="text-azure-400" />
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <div className={`max-w-[85%] rounded-2xl px-5 py-4 ${
+                                                        msg.role === 'user' 
+                                                            ? 'bg-azure-600 text-white rounded-tr-sm shadow-md' 
+                                                            : 'bg-slate-800/80 border border-slate-700 text-slate-200 rounded-tl-sm shadow-md'
+                                                    }`}>
+                                                        {msg.role === 'user' ? (
+                                                            <div className="whitespace-pre-wrap">{msg.content}</div>
+                                                        ) : (
+                                                            <div>
+                                                                <MarkdownContent content={msg.content} />
+                                                                
+                                                                {msg.isStreaming && (
+                                                                    <span className="inline-block w-2 h-4 bg-azure-400 ml-1 animate-pulse align-middle rounded-full"></span>
+                                                                )}
+                                                                
+                                                                {/* Sources Dropdown */}
+                                                                {msg.sources && msg.sources.length > 0 && (
+                                                                    <div className="mt-6 pt-4 border-t border-slate-700/50">
+                                                                        <p className="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Retrieval Context</p>
+                                                                        <div className="space-y-2">
+                                                                            {msg.sources.map((src, i) => (
+                                                                                <SourceCard key={i} source={src} index={i} />
+                                                                            ))}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                            <div ref={messagesEndRef} className="h-4"></div>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* Input Box */}
+                                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0a0f1c] via-[#0a0f1c] to-transparent pt-10 pb-6 px-4 sm:px-6">
+                                    <div className="max-w-4xl mx-auto relative group">
+                                        <textarea
+                                            value={inputValue}
+                                            onChange={(e) => setInputValue(e.target.value)}
+                                            onKeyDown={handleKeyDown}
+                                            placeholder="Ask a question about this document..."
+                                            className="w-full bg-slate-800 border border-slate-700 text-slate-200 rounded-2xl pl-5 pr-14 py-4 focus:outline-none focus:ring-1 focus:ring-azure-500 focus:border-azure-500 resize-none shadow-xl transition-all h-[56px] min-h-[56px] overflow-hidden leading-tight"
+                                            rows="1"
+                                            disabled={isGenerating || activeFile.status !== 'ready'}
+                                        />
+                                        <button 
+                                            onClick={handleSendMessage}
+                                            disabled={!inputValue.trim() || isGenerating || activeFile.status !== 'ready'}
+                                            className="absolute right-2 top-2 bottom-2 aspect-square flex items-center justify-center bg-azure-600 hover:bg-azure-500 text-white rounded-xl transition-all disabled:opacity-40 disabled:hover:bg-azure-600"
+                                        >
+                                            {isGenerating ? <Icon name="more-horizontal" size={20} className="animate-pulse" /> : <Icon name="arrow-up" size={20} />}
+                                        </button>
+                                    </div>
+                                    <p className="text-center text-xs text-slate-500 mt-3">Answers are generated using hybrid RAG retrieval exclusively bounded to {activeFile.filename}.</p>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="h-full flex items-center justify-center">
+                                <div className="text-center max-w-md p-8 glass-panel rounded-3xl">
+                                    <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-slate-900 shadow-xl shadow-azure-900/20">
+                                        <Icon name="layers" size={36} className="text-azure-400" />
+                                    </div>
+                                    <h2 className="text-2xl font-display font-semibold mb-3">No Active Document</h2>
+                                    <p className="text-slate-400 mb-8 leading-relaxed">
+                                        Upload a PDF, DOCX, or text file from the sidebar to begin an isolated RAG chat session.
+                                    </p>
+                                    <button 
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="bg-slate-100 hover:bg-white text-slate-900 px-6 py-2.5 rounded-xl font-medium transition-colors shadow-lg shadow-white/5"
+                                    >
+                                        Upload File Now
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                        
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<MainApp />);
+    </script>
+</body>
+</html>

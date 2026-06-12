@@ -114,7 +114,10 @@ if (tabDocs && tabCollections) {
                     ondrop="event.preventDefault(); this.classList.remove('border-brand-500'); addDraggedFileToCollection('${col.id}')"
                     class="relative p-3.5 rounded-xl cursor-pointer transition flex flex-col group ${itemClass}">
                     <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition z-20">
-                        <button onclick="event.stopPropagation(); deleteCollection('${col.id}')" class="h-6 w-6 rounded bg-darkPanel border border-darkBorder/60 flex items-center justify-center text-gray-400 hover:text-red-400 hover:border-red-500/30 transition">
+                        <button onclick="event.stopPropagation(); window.triggerCollectionUpload('${col.id}')" title="Upload File" class="h-6 w-6 rounded bg-darkPanel border border-darkBorder/60 flex items-center justify-center text-gray-400 hover:text-brand-400 hover:border-brand-500/30 transition">
+                            <i data-lucide="plus" class="h-3.5 w-3.5"></i>
+                        </button>
+                        <button onclick="event.stopPropagation(); deleteCollection('${col.id}')" title="Delete Collection" class="h-6 w-6 rounded bg-darkPanel border border-darkBorder/60 flex items-center justify-center text-gray-400 hover:text-red-400 hover:border-red-500/30 transition">
                             <i data-lucide="trash-2" class="h-3.5 w-3.5"></i>
                         </button>
                     </div>
@@ -395,4 +398,95 @@ if (tabDocs && tabCollections) {
             showToast("Error", "Could not remove file.", "error");
         }
     };
+    
+    window.uploadFileToCollection = async function(event) {
+        if (!activeCollectionId) return;
+        const fileInput = event.target;
+        const file = fileInput.files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("collection_id", activeCollectionId);
+
+        showToast("Uploading", `Uploading ${file.name} to collection...`, "success");
+        
+        // Reset input so the same file can be selected again
+        fileInput.value = "";
+
+        try {
+            const response = await fetch(`${API_BASE}/files/upload`, {
+                method: "POST",
+                body: formData
+            });
+
+            if (response.ok) {
+                showToast("Success", "File uploaded and added to collection.", "success");
+                // Refresh modal and collection view
+                if (typeof fetchFiles === 'function') fetchFiles(); // Refresh global files list too
+                window.openCollectionFilesModal();
+                selectCollection(activeCollectionId); // Refresh main view
+            } else {
+                const error = await response.json();
+                showToast("Upload Failed", error.detail || "Unknown error", "error");
+            }
+        } catch (error) {
+            console.error(error);
+            showToast("Upload Failed", "Network error occurred.", "error");
+        }
+    };
+
+    window.triggerCollectionUpload = function(collectionId) {
+        // Set context to the targeted collection
+        activeCollectionId = collectionId;
+        // Trigger the hidden file input
+        document.getElementById('collection-upload-input').click();
+    };
+
+    // Global drag-and-drop specifically for Collections
+    document.body.addEventListener("dragover", (e) => {
+        if (activeCollectionId) {
+            e.preventDefault(); // Allow drop
+        }
+    }, false);
+
+    document.body.addEventListener("drop", async (e) => {
+        if (activeCollectionId) {
+            const dropZone = document.getElementById("drop-zone");
+            if (dropZone && dropZone.contains(e.target)) {
+                // Let the document dropzone handle it if dropped explicitly there
+                return;
+            }
+            
+            e.preventDefault();
+            const dt = e.dataTransfer;
+            if (dt && dt.files && dt.files.length > 0) {
+                const file = dt.files[0];
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("collection_id", activeCollectionId);
+
+                showToast("Uploading", `Uploading ${file.name} to collection...`, "success");
+
+                try {
+                    const response = await fetch(`${API_BASE}/files/upload`, {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    if (response.ok) {
+                        showToast("Success", "File uploaded to collection.", "success");
+                        if (typeof fetchFiles === 'function') fetchFiles();
+                        selectCollection(activeCollectionId);
+                    } else {
+                        const error = await response.json();
+                        showToast("Upload Failed", error.detail || "Unknown error", "error");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    showToast("Upload Failed", "Network error occurred.", "error");
+                }
+            }
+        }
+    }, false);
 }

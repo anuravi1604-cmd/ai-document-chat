@@ -414,9 +414,16 @@
                     <i data-lucide="folders" class="h-5 w-5 inline mr-1 text-brand-400"></i>
                     Collection Documents
                 </h3>
-                <button onclick="window.closeCollectionFilesModal()" class="text-gray-400 hover:text-white transition">
-                    ✕
-                </button>
+                <div class="flex items-center gap-3">
+                    <input type="file" id="collection-upload-input" class="hidden" onchange="window.uploadFileToCollection(event)" />
+                    <button onclick="document.getElementById('collection-upload-input').click()" class="bg-brand-500 hover:bg-brand-400 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 transition">
+                        <i data-lucide="upload" class="h-3.5 w-3.5"></i>
+                        Upload File
+                    </button>
+                    <button onclick="window.closeCollectionFilesModal()" class="text-gray-400 hover:text-white transition">
+                        ✕
+                    </button>
+                </div>
             </div>
             <div id="collection-files-list" class="max-h-[60vh] overflow-y-auto mt-2">
             </div>

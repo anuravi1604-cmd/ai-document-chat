@@ -3,7 +3,7 @@ import uuid
 import json
 import shutil
 from typing import Optional
-from fastapi import FastAPI, UploadFile, File, BackgroundTasks, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -122,7 +122,11 @@ def read_root():
     return HTMLResponse(content="<h1>Frontend file index.html not found!</h1>", status_code=404)
 
 @app.post("/api/files/upload")
-def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+def upload_document(
+    background_tasks: BackgroundTasks, 
+    file: UploadFile = File(...),
+    collection_id: Optional[str] = Form(None)
+):
     """Uploads a file, saves it, and starts RAG pipeline indexing in the background."""
     filename = file.filename
     ext = os.path.splitext(filename)[1].lower()
@@ -173,6 +177,12 @@ def upload_document(background_tasks: BackgroundTasks, file: UploadFile = File(.
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
         raise HTTPException(status_code=500, detail=f"Failed to write file metadata: {str(e)}")
+        
+    if collection_id:
+        try:
+            add_file_to_collection(collection_id, file_id)
+        except Exception as e:
+            print(f"Warning: Failed to add file {file_id} to collection {collection_id}: {e}")
         
     # 3. Trigger background worker for document parsing, chunking, and embedding
     if file_type in ["csv", "excel"]:

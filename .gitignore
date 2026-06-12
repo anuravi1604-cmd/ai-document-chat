@@ -18,3 +18,11 @@ Thumbs.db
 
 # DeepEval local caches
 .deepeval/
+
+# Ignored datasets and patch artifacts
+*.csv
+*.xlsx
+*.pdf
+*.orig
+*.rej
+GITHUB/

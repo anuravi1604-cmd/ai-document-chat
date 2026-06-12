@@ -1121,6 +1121,29 @@
                 }
             });
 
+            // Global drop for normal Documents (when not in a collection)
+            document.body.addEventListener("dragover", (e) => {
+                // If we are NOT in a collection, allow drop
+                if (typeof activeCollectionId === 'undefined' || !activeCollectionId) {
+                    e.preventDefault();
+                }
+            }, false);
+
+            document.body.addEventListener("drop", (e) => {
+                // If we are NOT in a collection
+                if (typeof activeCollectionId === 'undefined' || !activeCollectionId) {
+                    // Prevent handling if dropped exactly on the small dropZone (it's handled above)
+                    if (!dropZone.contains(e.target)) {
+                        e.preventDefault();
+                        const dt = e.dataTransfer;
+                        if (dt && dt.files && dt.files.length > 0) {
+                            const newTab = createDocViewTab();
+                            handleFileUpload(dt.files[0], newTab);
+                        }
+                    }
+                }
+            }, false);
+
             dropZone.addEventListener("click", () => fileInput.click());
             fileInput.addEventListener("change", (e) => {
                 if (e.target.files.length > 0) {
