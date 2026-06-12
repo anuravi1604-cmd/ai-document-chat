@@ -36,9 +36,16 @@ ContextIQ leverages a state-of-the-art multi-stage retrieval architecture for un
 - **Cloud OpenRouter**: Seamlessly switch to OpenRouter APIs. A beautiful, password-style API key container slides open in the header on selection.
 
 ### 5. Highly Interactive & Premium UI/UX
+- **Global Drag-and-Drop**: Easily upload documents directly from your desktop into the global workspace, or drag them straight into an active Collection chat to upload them directly into a specific folder.
+- **Quick Uploads**: Collections feature a dedicated `+` button in the sidebar to bypass the global workspace and upload documents directly into the isolated collection.
 - **Glassmorphic Dark Theme**: An elegant dark-mode interface built on a `#090a0f` base with transparent backdrop filters, subtle border highlights, and live typewriter streaming.
 - **Resizable Sidebars**: Hover and drag the border handles to customize Left (File list) and Right (Citations) sidebar widths. Click the chevron buttons to collapse sidebars completely for an immersive full-screen chat experience.
 - **Active Citation Grounding**: Clicking the `Grounded Citations` badge under AI answers slides open the Citations Sidebar. In-text citation links (e.g. `[Source 1]`) linkify dynamically—clicking them automatically scrolls to and highlights the target source card in the sidebar with an amber pulse animation.
+
+### 6. DeepEval RAG Testing Framework
+ContextIQ includes a dedicated, robust evaluation pipeline built on **DeepEval** to programmatically score and validate the RAG application's performance using an LLM-as-a-judge approach.
+- Tests core metrics: **Answer Relevancy**, **Faithfulness**, **Contextual Precision**, **Contextual Recall**, **Contextual Relevancy**, and **Hallucination**.
+- Automatically queries the semantic retrieval pipeline, builds `LLMTestCase` objects, and generates visual charts (`metrics_comparison.png`) and comprehensive JSON/CSV reports.
 
 ---
 
@@ -96,9 +103,8 @@ ai-document-chat/
 │   │   ├── pipeline.py        # Document parsing, hybrid FAISS/BM25 retrieval, and LLM streaming
 │   │   └── storage.py         # SQLite CRUD database schemas and cascade deletions
 │   └── data/                  # Local storage folders (database, uploads, and indexes)
+├── evaluation/                # DeepEval Framework (test generators, evaluators, and reporting)
 ├── frontend/
 │   └── index.html             # HTML5/JS Glassmorphic Single-Page Application
 └── README.md                  # ContextIQ Documentation
 ```
-
-
