@@ -154,7 +154,21 @@
 
         // Initialize
         document.addEventListener("DOMContentLoaded", () => {
-            fetchFiles();
+            fetchFiles().then(() => {
+                setTimeout(() => {
+                    const activeType = localStorage.getItem('contextiq_active_type');
+                    const activeId = localStorage.getItem('contextiq_active_id');
+                    if (activeType === 'collection' && activeId) {
+                        const tab = document.getElementById('tab-collections');
+                        if(tab) tab.click();
+                        if (typeof selectCollection === 'function') selectCollection(activeId);
+                    } else if (activeType === 'file' && activeId) {
+                        const tab = document.getElementById('tab-documents');
+                        if(tab) tab.click();
+                        selectWorkspace(activeId, 'ready');
+                    }
+                }, 200);
+            });
             initDragAndDrop();
             initTextareaAutoGrow();
             initSidebarResizers();
@@ -264,7 +278,8 @@
                 renderFilesList();
             } catch (err) {
                 console.error(err);
-                showToast("Network Error", "Could not fetch uploaded files from RAG backend engine.", "error");
+                if (docModal) docModal.remove();
+                showToast("Upload Error", err.message || "An error occurred while uploading.", "error");
             }
         }
 
@@ -317,16 +332,6 @@
 
                         <!-- ACTION BUTTONS (Visible on hover) -->
                         <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition z-20">
-                            ${file.status === "ready" ? `
-                            <a 
-                                href="${API_BASE}/files/${file.id}/view" 
-                                target="_blank"
-                                onclick="event.stopPropagation();"
-                                class="h-6 w-6 rounded bg-darkPanel border border-darkBorder/60 flex items-center justify-center text-gray-400 hover:text-brand-400 hover:border-brand-500/30 transition"
-                                title="Open Original File"
-                            >
-                                <i data-lucide="external-link" class="h-3.5 w-3.5"></i>
-                            </a>` : ''}
                             <button 
                                 onclick="event.stopPropagation(); quickDeleteFile('${file.id}')"
                                 class="h-6 w-6 rounded bg-darkPanel border border-darkBorder/60 flex items-center justify-center text-gray-400 hover:text-red-400 hover:border-red-500/30 transition"
@@ -342,7 +347,11 @@
                             </div>
 
                             <div class="min-w-0">
-                                <p class="text-xs font-semibold text-gray-200 truncate pr-8 group-hover:text-white transition">
+                                <p 
+                                    class="text-xs font-semibold text-gray-200 truncate pr-8 group-hover:text-white transition cursor-pointer"
+                                    title="Double-click to open original file"
+                                    ondblclick="window.open('${API_BASE}/files/${file.id}/view', '_blank'); event.stopPropagation();"
+                                >
                                     ${file.filename}
                                 </p>
 
@@ -351,7 +360,16 @@
                                 <span class="text-gray-700 text-[9px]">•</span>
                                 <span class="text-[9px] text-gray-500">
                                     ${new Date(file.uploaded_at).toLocaleDateString()}
-                            </span>
+                                </span>
+                            </div>
+                            ${(file.status === "ready" && !["csv", "excel"].includes(file.file_type)) ? `
+                                ${file.graph_ready 
+                                    ? `<span class="flex items-center gap-1 text-[8px] font-semibold text-emerald-400/80 bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/10 mt-1.5 w-fit"><i data-lucide="network" class="h-2.5 w-2.5"></i> Graph Ready</span>` 
+                                    : `<div class="mt-2 w-full max-w-[120px] bg-brand-500/10 rounded-full h-1.5 border border-brand-500/20 overflow-hidden relative" title="Building Knowledge Graph: ${file.graph_progress || 0}%">
+                                           <div class="absolute inset-y-0 left-0 bg-brand-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_8px_rgba(92,122,255,0.6)]" style="width: ${file.graph_progress || 0}%"></div>
+                                       </div>`
+                                }
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -371,7 +389,7 @@
 
         // Poll files that are indexing to check status
         async function pollProcessingFiles() {
-            const hasProcessing = files.some(f => f.status === "processing");
+            const hasProcessing = files.some(f => f.status === "processing" || (f.status === "ready" && !f.graph_ready && !["csv", "excel"].includes(f.file_type)));
             if (!hasProcessing) return;
 
             try {
@@ -389,6 +407,8 @@
                             }
                         } else if (oldFile && oldFile.status === "processing" && nf.status === "error") {
                             showToast("Indexing Failed", `An error occurred during indexing for "${nf.filename}".`, "error");
+                        } else if (oldFile && oldFile.status === "ready" && !oldFile.graph_ready && nf.graph_ready) {
+                            showToast("Graph Ready", `Knowledge Graph generation finished for "${nf.filename}". Tri-brid retrieval is now fully active!`, "success");
                         }
                     });
 
@@ -402,13 +422,22 @@
 
         // Handle Active workspace Selection
         async function selectWorkspace(fileId, status) {
+            if (currentChatController) {
+                // We no longer abort the stream so background generation can finish
+                currentChatController = null;
+                isGenerating = false;
+            }
             if (status === "error") {
                 showToast("Indexing Failed", "This document indexing has failed. Please delete and upload it again.", "error");
                 return;
             }
 
             activeFileId = fileId;
+            localStorage.setItem('contextiq_active_type', 'file');
+            localStorage.setItem('contextiq_active_id', fileId);
             citationsSidebar.classList.add("hidden");
+            const rr1 = document.getElementById("right-resizer");
+            if (rr1) rr1.classList.add("hidden");
 
             citationsSidebarContent.innerHTML = `
                 <div class="text-center py-12 text-gray-500 select-none">
@@ -428,6 +457,7 @@
             chatHeader.classList.remove("hidden");
             chatInputBar.classList.remove("hidden");
             document.getElementById("btn-delete-file").classList.remove("hidden");
+            document.getElementById("btn-add-file-to-context").classList.remove("hidden");
             document.getElementById("btn-view-collection-files").classList.add("hidden");
 
             // 2. Load workspace metadata header
@@ -435,12 +465,12 @@
             const sizeStr = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
 
             activeFileTitle.innerText = file.filename;
+            activeFileTitle.setAttribute("ondblclick", `window.open('${API_BASE}/files/${file.id}/view', '_blank')`);
+            activeFileTitle.classList.add("cursor-pointer", "hover:text-brand-300", "transition");
+            activeFileTitle.setAttribute("title", "Double-click to open original file");
+            
             activeFileSize.innerText = sizeStr;
             activeFileIcon.innerHTML = getFileIcon(file.file_type);
-            const activeFileOpenLink = document.getElementById("active-file-open-link");
-            if (activeFileOpenLink) {
-                activeFileOpenLink.href = `${API_BASE}/files/${fileId}/view`;
-            }
             lucide.createIcons();
 
             if (status === "processing") {
@@ -489,6 +519,11 @@
                         appendMessageBubble(msg.role, msg.content, msg.sources, false, msg.id);
                     });
                 }
+                if (window.activeGenerations[fileId]) {
+                    const b = appendMessageBubble('assistant', '<div class="flex items-center gap-2 text-brand-400"><span class="h-2 w-2 rounded-full bg-brand-400 animate-pulse"></span> Generating response in background... Please wait.</div>', null, true);
+                    const cd = b.querySelector('.message-content');
+                    if(cd) cd.classList.remove('typing-cursor');
+                }
                 scrollToBottom();
             } catch (err) {
                 console.error(err);
@@ -496,6 +531,7 @@
             }
         }
 
+        window.renderEmptyChatState = renderEmptyChatState;
         function renderEmptyChatState(filename) {
             chatFeed.innerHTML = `
                 <div id="empty-state-isolated" class="flex-grow flex flex-col items-center justify-center text-center max-w-lg mx-auto py-12 fade-in select-none">
@@ -534,6 +570,9 @@
             if (!activeFileId || isGenerating) return;
 
             const query = userInput.value.trim();
+            const activeGenId = window.activeCollectionId || activeFileId;
+            window.activeGenerations[activeGenId] = true;
+            const submittedGenId = activeGenId;
             if (!query) return;
 
             // Disable input while generating
@@ -628,6 +667,7 @@
                                 if (Array.isArray(parsedVal)) {
                                     // Save the sources in global citations map
                                     window.messageCitations = window.messageCitations || {};
+        window.activeGenerations = window.activeGenerations || {};
                                     window.messageCitations[messageId] = parsedVal;
 
                                     // Render Citations badge under bubble
@@ -682,9 +722,21 @@
                 }
                 lucide.createIcons();
             } finally {
-                isGenerating = false;
-                currentChatController = null;
-                toggleInputState(false);
+                delete window.activeGenerations[submittedGenId];
+                const currentActiveId = window.activeCollectionId || activeFileId;
+                if (currentActiveId === submittedGenId) {
+                    isGenerating = false;
+                    currentChatController = null;
+                    toggleInputState(false);
+                    if (window.activeCollectionId) {
+                        if (typeof selectCollection === 'function') selectCollection(window.activeCollectionId);
+                    } else if (activeFileId) {
+                        selectWorkspace(activeFileId, 'ready');
+                    }
+                } else if (currentActiveId) {
+                    // Background generation finished but user is looking at another chat
+                    showToast('Background Task Finished', 'A background response has finished generating.', 'success');
+                }
             }
         });
 
@@ -707,6 +759,7 @@
 
         // Global map storing message citations
         window.messageCitations = window.messageCitations || {};
+        window.activeGenerations = window.activeGenerations || {};
 
         // Open Citations Sidebar for a specific message and render its RAG sources
         function openCitationsSidebar(messageId) {
@@ -778,6 +831,7 @@
         function renderSourcesSidebar(sources) {
             const dummyMsgId = "current-streaming-msg";
             window.messageCitations = window.messageCitations || {};
+        window.activeGenerations = window.activeGenerations || {};
             window.messageCitations[dummyMsgId] = sources;
             openCitationsSidebar(dummyMsgId);
         }
@@ -846,6 +900,7 @@
             // Register historical sources in global map
             if (sources && sources.length > 0) {
                 window.messageCitations = window.messageCitations || {};
+        window.activeGenerations = window.activeGenerations || {};
                 window.messageCitations[messageId] = sources;
             }
 
@@ -1009,6 +1064,8 @@
                 const response = await fetch(`${API_BASE}/files/${activeFileId}/clear`, { method: "POST" });
                 if (response.ok) {
                     citationsSidebar.classList.add("hidden");
+                    const rr2 = document.getElementById("right-resizer");
+                    if (rr2) rr2.classList.add("hidden");
                     showToast("History Cleared", "Message logs cleared for this workspace.", "success");
                     selectWorkspace(activeFileId, "ready");
                 }
@@ -1039,6 +1096,8 @@
                     activeFileId = null;
 
                     citationsSidebar.classList.add("hidden");
+                    const rr3 = document.getElementById("right-resizer");
+                    if (rr3) rr3.classList.add("hidden");
 
                     chatHeader.classList.add("hidden");
                     chatInputBar.classList.add("hidden");
@@ -1075,25 +1134,54 @@
             const file = files.find(f => f.id === activeFileId);
             if (!file) return;
 
-            if (!confirm(`Are you sure you want to permanently delete "${file.filename}"?\nThis will clear its conversational logs and dense database embeddings.`)) return;
+            // Custom Confirm Modal to bypass browser dialog blocking
+            const confirmModal = document.createElement("div");
+            confirmModal.className = "fixed inset-0 z-[200] flex items-center justify-center bg-[#0f111a]/80 backdrop-blur-sm fade-in";
+            confirmModal.innerHTML = `
+                <div class="bg-darkPanel border border-darkBorder rounded-2xl p-6 shadow-2xl max-w-sm w-full mx-4 transform transition-all scale-100">
+                    <div class="flex items-center gap-3 text-rose-400 mb-2">
+                        <div class="h-10 w-10 rounded-full bg-rose-500/10 flex items-center justify-center shrink-0">
+                            <i data-lucide="alert-triangle" class="h-5 w-5"></i>
+                        </div>
+                        <h3 class="font-bold text-lg text-white">Delete Document?</h3>
+                    </div>
+                    <p class="text-sm text-gray-400 mb-6 mt-4">Are you sure you want to permanently delete "<span class="text-white font-medium">${file.filename}</span>"?<br><br>This will clear its conversational logs and dense database embeddings.</p>
+                    <div class="flex gap-3 justify-end">
+                        <button id="btn-cancel-del" class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white bg-darkCard hover:bg-white/5 rounded-lg border border-darkBorder transition">Cancel</button>
+                        <button id="btn-confirm-del" class="px-4 py-2 text-sm font-medium text-white bg-rose-500 hover:bg-rose-600 rounded-lg shadow-lg shadow-rose-500/20 transition">Delete Permanently</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(confirmModal);
+            lucide.createIcons();
 
-            try {
-                const response = await fetch(`${API_BASE}/files/${activeFileId}`, { method: "DELETE" });
-                if (response.ok) {
-                    showToast("Document Deleted", `"${file.filename}" deleted from isolated storage.`, "success");
+            confirmModal.querySelector("#btn-cancel-del").addEventListener("click", () => confirmModal.remove());
+            
+            confirmModal.querySelector("#btn-confirm-del").addEventListener("click", async () => {
+                confirmModal.remove();
+                try {
+                    const response = await fetch(`${API_BASE}/files/${activeFileId}`, { method: "DELETE" });
+                    if (response.ok) {
+                        showToast("Document Deleted", `"${file.filename}" deleted from isolated storage.`, "success");
 
-                    // Reset Workspace
-                    activeFileId = null;
-                    chatHeader.classList.add("hidden");
-                    chatInputBar.classList.add("hidden");
-                    chatFeed.innerHTML = "";
-                    blankSlate.classList.remove("hidden");
+                        // Reset Workspace
+                        activeFileId = null;
+                        chatHeader.classList.add("hidden");
+                        chatInputBar.classList.add("hidden");
+                        chatFeed.innerHTML = "";
+                        blankSlate.classList.remove("hidden");
 
-                    await fetchFiles();
+                        // Remove from local array instantly
+                        files = files.filter(f => f.id !== file.id);
+                        renderFilesList();
+                    } else {
+                        showToast("Delete Failed", "Could not delete document from server.", "error");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast("Delete Failed", "Network error while deleting document.", "error");
                 }
-            } catch (err) {
-                console.error(err);
-            }
+            });
         });
 
         // Drag and Drop File Handlers
@@ -1137,8 +1225,8 @@
                         e.preventDefault();
                         const dt = e.dataTransfer;
                         if (dt && dt.files && dt.files.length > 0) {
-                            const newTab = createDocViewTab();
-                            handleFileUpload(dt.files[0], newTab);
+                            const docModal = createDocViewModal(dt.files[0].name);
+                            handleFileUpload(dt.files[0], docModal);
                         }
                     }
                 }
@@ -1147,39 +1235,65 @@
             dropZone.addEventListener("click", () => fileInput.click());
             fileInput.addEventListener("change", (e) => {
                 if (e.target.files.length > 0) {
-                    const newTab = createDocViewTab();
-                    handleFileUpload(e.target.files[0], newTab);
+                    if (e.target.files.length > 1) {
+                        // Multi-file select: don't open modal, just upload all
+                        showToast("Uploading", `Uploading ${e.target.files.length} documents...`, "success");
+                        Array.from(e.target.files).forEach(f => handleFileUpload(f, null));
+                    } else {
+                        // Single file select: auto-open modal
+                        const docModal = createDocViewModal(e.target.files[0].name);
+                        handleFileUpload(e.target.files[0], docModal);
+                    }
                 }
+                e.target.value = ""; // Reset input so same file(s) can be selected again
             });
         }
 
-        // Helper to open document view in a new tab synchronously to bypass popup blocker
-        function createDocViewTab() {
+        // Helper to open document view in a fullscreen modal synchronously
+        function createDocViewModal(filename = "") {
             if (!autoOpenOnUpload) return null;
-            const newTab = window.open("about:blank", "_blank");
-            if (newTab) {
-                newTab.document.write(`
-                    <html>
-                    <head>
-                        <title>Opening Document...</title>
-                        <link rel="stylesheet" href="/static/css/styles.css">
-                    </head>
-                    <body>
-                        <div class="loader"></div>
-                        <div style="font-weight: 600; font-size: 14px; margin-bottom: 6px;">Opening Document</div>
-                        <p style="color: #718096; font-size: 12px; margin: 0;">Please wait while the document is uploaded and prepared...</p>
-                    </body>
-                    </html>
-                `);
-                newTab.document.close();
-            } else {
-                showToast("Popup Blocked", "Please allow popups to automatically open documents after uploading.", "warning");
+            
+            // Browsers cannot render DOCX, XLSX, or CSV natively.
+            const ext = filename.split('.').pop().toLowerCase();
+            const viewableExts = ['pdf', 'txt', 'md', 'markdown', 'png', 'jpg', 'jpeg'];
+            if (ext && !viewableExts.includes(ext)) {
+                return null; // Skip modal for unviewable files
             }
-            return newTab;
+            
+            const modal = document.createElement("div");
+            modal.className = "fixed inset-0 z-[100] flex flex-col bg-[#0f111a]/95 backdrop-blur-md transition-all duration-300";
+            
+            // Initial loading state
+            modal.innerHTML = `
+                <div class="flex-1 flex flex-col items-center justify-center fade-in" id="modal-loading-state">
+                    <div class="h-12 w-12 rounded-xl bg-brand-600/10 border border-brand-500/15 flex items-center justify-center mb-4 animate-pulse">
+                        <i data-lucide="loader-2" class="h-6 w-6 text-brand-400 animate-spin"></i>
+                    </div>
+                    <div class="text-white font-semibold text-sm">Opening Document...</div>
+                    <p class="text-gray-400 text-xs mt-1">Please wait while the document is uploaded and prepared</p>
+                </div>
+                <div id="modal-iframe-container" class="flex-1 hidden w-full h-full relative p-4 pb-0">
+                    <!-- Close button -->
+                    <button onclick="this.closest('.fixed').remove()" class="absolute top-6 right-8 h-10 w-10 bg-darkPanel/90 backdrop-blur-xl border border-darkBorder rounded-full flex items-center justify-center text-gray-300 hover:text-white hover:border-brand-500/50 hover:bg-brand-500/20 transition z-50 shadow-2xl" title="Close Viewer">
+                        <i data-lucide="x" class="h-5 w-5"></i>
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            lucide.createIcons();
+            return modal;
         }
 
         // Upload to FastAPI endpoint
-        async function handleFileUpload(file, newTab = null) {
+        async function handleFileUpload(file, docModal = null) {
+            // Prevent duplicate uploads on the frontend
+            const existingFile = files.find(f => f.filename === file.name);
+            if (existingFile) {
+                showToast("Duplicate File", `"${file.name}" is already uploaded.`, "error");
+                return;
+            }
+
             const formData = new FormData();
             formData.append("file", file);
 
@@ -1198,6 +1312,11 @@
                 });
                 renderFilesList();
 
+                // Route to active collection if one is currently selected
+                if (typeof window.activeCollectionId !== 'undefined' && window.activeCollectionId) {
+                    formData.append("collection_id", window.activeCollectionId);
+                }
+
                 const response = await fetch(`${API_BASE}/files/upload`, {
                     method: "POST",
                     body: formData
@@ -1211,9 +1330,20 @@
                 const data = await response.json();
                 showToast("File Uploaded", `"${file.name}" uploaded successfully. Indexing RAG pipeline in background...<br><a href="${API_BASE}/files/${data.file.id}/view" target="_blank" class="text-brand-400 hover:underline font-semibold block mt-1.5 flex items-center gap-1"><i data-lucide="external-link" class="h-3 w-3 inline"></i> Open Original File</a>`, "success");
 
-                // Navigate the previously opened tab to the actual document URL
-                if (newTab) {
-                    newTab.location.href = `${API_BASE}/files/${data.file.id}/view`;
+                // Navigate the modal to the actual document URL
+                if (docModal) {
+                    const loadingState = docModal.querySelector("#modal-loading-state");
+                    const iframeContainer = docModal.querySelector("#modal-iframe-container");
+                    
+                    if (loadingState && iframeContainer) {
+                        loadingState.classList.add("hidden");
+                        iframeContainer.classList.remove("hidden");
+                        
+                        const iframe = document.createElement("iframe");
+                        iframe.src = `${API_BASE}/files/${data.file.id}/view`;
+                        iframe.className = "w-full h-full border-0 rounded-t-xl bg-white shadow-2xl";
+                        iframeContainer.insertBefore(iframe, iframeContainer.firstChild);
+                    }
                 }
 
                 // Swap dummy with actual file
@@ -1290,4 +1420,64 @@
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
         }
+        
+        window.addFileToContext = async function() {
+            const activeType = localStorage.getItem('contextiq_active_type');
+            if (activeType === 'collection') {
+                if (typeof window.openCollectionFilesModal === 'function') {
+                    window.openCollectionFilesModal();
+                }
+                return;
+            }
+            
+            if (activeType === 'file' && activeFileId) {
+                const file = files.find(f => f.id === activeFileId);
+                if (!file) return;
+                
+                showToast("Creating Collection", "Creating a new collection from this document...", "info");
+                
+                try {
+                    // Create collection
+                    const colName = `Collection with ${file.filename.slice(0, 20)}...`;
+                    const res = await fetch(`${API_BASE}/collections`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ name: colName })
+                    });
+                    if (!res.ok) {
+                        showToast("Error", "Failed to create collection", "error");
+                        return;
+                    }
+                    const col = await res.json();
+                    
+                    // Add current file to collection
+                    await fetch(`${API_BASE}/collections/${col.id}/files`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ file_id: file.id })
+                    });
+                    
+                    // Switch to collection
+                    if (typeof fetchCollections === 'function') {
+                        await fetchCollections();
+                        const tab = document.getElementById('tab-collections');
+                        if (tab) tab.click();
+                        if (typeof selectCollection === 'function') {
+                            selectCollection(col.id);
+                        }
+                    }
+                    
+                    // Open modal
+                    setTimeout(() => {
+                        if (typeof window.openCollectionFilesModal === 'function') {
+                            window.openCollectionFilesModal(col.id);
+                        }
+                    }, 500);
+                    
+                } catch (e) {
+                    console.error(e);
+                    showToast("Error", "Failed to create collection", "error");
+                }
+            }
+        };
     

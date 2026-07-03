@@ -6,11 +6,11 @@ import numpy as np
 import faiss
 from typing import List, Dict, Tuple, Any
 from docx import Document as DocxDoc
-from docling.document_converter import DocumentConverter
 from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 from sentence_transformers import SentenceTransformer, CrossEncoder
 from rank_bm25 import BM25Okapi
 import ollama
+import networkx as nx
 
 from backend.app.config import (
     EMBEDDING_MODEL_NAME,
@@ -30,12 +30,13 @@ chroma_collection = chroma_client.get_or_create_collection(name="contextiq_docs"
 # Global models cached inside memory to avoid loading on every query
 _embedding_model = None
 _reranker_model = None
+_openrouter_rate_limited = False
 
 def get_embedding_model() -> SentenceTransformer:
     global _embedding_model
     if _embedding_model is None:
         print(f"Loading embedding model: {EMBEDDING_MODEL_NAME}...")
-        _embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME)
+        _embedding_model = SentenceTransformer(EMBEDDING_MODEL_NAME, device="cpu")
         print("Embedding model loaded successfully.")
     return _embedding_model
 
@@ -43,7 +44,7 @@ def get_reranker_model() -> CrossEncoder:
     global _reranker_model
     if _reranker_model is None:
         print(f"Loading reranker model: {RERANKER_MODEL_NAME}...")
-        _reranker_model = CrossEncoder(RERANKER_MODEL_NAME)
+        _reranker_model = CrossEncoder(RERANKER_MODEL_NAME, device="cpu")
         print("Reranker model loaded successfully.")
     return _reranker_model
 
@@ -67,123 +68,21 @@ def parse_document(file_path: str) -> str:
     ext = os.path.splitext(file_path)[1].lower()
     
     if ext == ".pdf":
-        file_size = os.path.getsize(file_path)
-        
-        # 1. Detect if the PDF is scanned or has garbled font encodings
-        is_scanned = True
+        print(f"[Parser] Parsing PDF with Tesseract OCR: {file_path}")
         try:
-            import pypdf
-            with open(file_path, "rb") as f:
-                reader = pypdf.PdfReader(f)
-                total_text_len = 0
-                num_pages = len(reader.pages)
-                if num_pages > 0:
-                    # Sample first 5 pages to determine if it is scanned (fast and highly accurate check)
-                    pages_to_check = min(5, num_pages)
-                    has_garbage = False
-                    for i in range(pages_to_check):
-                        page_text = reader.pages[i].extract_text()
-                        if page_text:
-                            total_text_len += len(page_text.strip())
-                            # If extracted text is garbled/garbage, flag it immediately
-                            if is_garbage_text(page_text):
-                                has_garbage = True
-                                break
-                    
-                    # If average character count is > 50 AND no page was flagged as garbage, it is text-based
-                    if not has_garbage and (total_text_len / pages_to_check) > 50:
-                        is_scanned = False
-        except Exception as e:
-            print(f"Error checking if PDF is scanned: {e}")
-            is_scanned = True # fallback to scanned (safest) on error
+            from pdf2image import convert_from_path
+            import pytesseract
             
-        print(f"[Parser] PDF Analysis - Size: {file_size / (1024*1024):.2f}MB, Requires OCR (Scanned/Garbled): {is_scanned}")
-        
-        # 2. Route Text-based PDFs to high-speed pdfplumber
-        # Bypasses native PyTorch ONNX segfaults on Apple Silicon!
-        if not is_scanned:
-            print(f"[Parser] Parsing TEXT-BASED PDF with fast-path (pdfplumber): {file_path}")
-            try:
-                import pdfplumber
-                import re
-                text_parts = []
-                with pdfplumber.open(file_path) as pdf:
-                    for i, page in enumerate(pdf.pages):
-                        text = page.extract_text(layout=True)
-                        if text:
-                            # Fix glued table headers caused by tight PDF kerning!
-                            text = re.sub(r'Table(\d+):', r'Table \1: ', text)
-                            
-                            # Heuristic: Fix wrapped numbers from borderless tables
-                            lines = text.split("\n")
-                            fixed_lines = []
-                            for line in lines:
-                                stripped = line.strip()
-                                # If line is entirely numbers, spaces, and dots
-                                if stripped and re.match(r'^[\d\s\.]+$', stripped):
-                                    if fixed_lines:
-                                        fixed_lines[-1] += "  " + stripped
-                                else:
-                                    fixed_lines.append(line)
-                            
-                            text = "\n".join(fixed_lines)
-                            
-                            # Flatten hierarchical multi-line headers to guarantee correct 1-to-1 column mapping for local LLMs
-                            text = re.sub(
-                                r'Model\s+NQ\s+TQA\s+WQ\s+CT\s+Jeopardy-QGen\s+MSMarco\s+FVR-3\s+FVR-2\s*\n\s*ExactMatch\s+B-1\s+QB-1\s+R-L\s+B-1\s+LabelAccuracy', 
-                                'Model NQ_ExactMatch TQA WQ CT Jeopardy_B-1 Jeopardy_QB-1 MSMarco_R-L MSMarco_B-1 FVR-3_Label FVR-2_Accuracy', 
-                                text
-                            )
-                            
-                            # Hardcode convert Table 6 to strict Markdown so Local LLMs do not hallucinate
-                            def format_table_6(m):
-                                header = "\n\n=== DATA FOR TABLE 6 ===\n| Model | NQ_ExactMatch | TQA | WQ | CT | Jeopardy_B-1 | Jeopardy_QB-1 | MSMarco_R-L | MSMarco_B-1 | FVR-3_Label | FVR-2_Accuracy |\n|---|---|---|---|---|---|---|---|---|---|---|"
-                                lines = m.group(1).strip().split("\n")
-                                md_lines = [header]
-                                for line in lines:
-                                    cols = re.split(r'\s+', line.strip())
-                                    if len(cols) < 11:
-                                        cols.extend([""] * (11 - len(cols)))
-                                    md_lines.append("| " + " | ".join(cols) + " |")
-                                return "\n".join(md_lines) + "\n"
-                                
-                            text = re.sub(
-                                r'Model NQ_ExactMatch TQA WQ CT Jeopardy_B-1 Jeopardy_QB-1 MSMarco_R-L MSMarco_B-1 FVR-3_Label FVR-2_Accuracy\s*\n((?:\s*RAG[^\n]+\n?){6})', 
-                                format_table_6, 
-                                text
-                            )
-                            
-                            text_parts.append(f"## Page {i+1}\n\n{text}")
-                            
-                return "\n\n".join(text_parts)
-            except Exception as e:
-                print(f"[Parser WARNING] pdfplumber extraction failed, falling back to optimized Docling: {e}")
-        
-        # 3. Route Scanned PDFs or fallback through a highly optimized Docling pipeline
-        # Disabling heavy visual/table structure analysis boosts conversion speed by 5x-10x on CPU.
-        print(f"[Parser] Parsing PDF with optimized Docling pipeline. OCR Enabled: {is_scanned}")
-        from docling.datamodel.base_models import InputFormat
-        from docling.datamodel.pipeline_options import PdfPipelineOptions
-        from docling.document_converter import DocumentConverter, PdfFormatOption
-        
-        pipeline_options = PdfPipelineOptions()
-        # Enable OCR only if it is actually a scanned PDF or has garbled fonts
-        pipeline_options.do_ocr = is_scanned
-        # Force OCR to run on the whole page, ignoring any corrupted or garbled embedded text layers
-        pipeline_options.ocr_options.force_full_page_ocr = is_scanned
-        # Turn off visual table structure extraction to prevent Apple Silicon SIGSEGV crashes
-        pipeline_options.do_table_structure = False
-        pipeline_options.generate_page_images = False
-        pipeline_options.generate_picture_images = False
-        
-        converter = DocumentConverter(
-            format_options={
-                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
-            }
-        )
-        result = converter.convert(file_path)
-        markdown_text = result.document.export_to_markdown()
-        return markdown_text
+            images = convert_from_path(file_path)
+            text_blocks = []
+            
+            for i, img in enumerate(images):
+                page_text = pytesseract.image_to_string(img)
+                text_blocks.append(f"--- PAGE {i+1} ---\n{page_text}")
+                
+            return "\n\n".join(text_blocks)
+        except Exception as e:
+            raise RuntimeError(f"Failed to parse PDF with Tesseract: {str(e)}")
         
     elif ext == ".docx":
         print(f"Parsing DOCX with python-docx: {file_path}")
@@ -274,6 +173,175 @@ class RAGPipeline:
     """Manages parsing, chunking, dense vector indexing, BM25 creation, search, and LLM answering."""
     
     @staticmethod
+    def extract_graph_data(text: str) -> list:
+        """Uses OpenRouter LLM or local Ollama fallback to extract Knowledge Graph triplets from text."""
+        global _openrouter_rate_limited
+        if not OPENROUTER_API_KEY or _openrouter_rate_limited:
+            use_ollama = True
+            
+        if not use_ollama:
+            prompt = f"""You are a Knowledge Graph extractor.
+Given the following text, extract all entities and the relationships between them.
+Return the data EXCLUSIVELY as a JSON array of objects. 
+Each object must have exactly three string fields: "subject", "relation", "object".
+Do NOT return anything else, no markdown, no explanations.
+
+Text:
+{text}"""
+            headers = {
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": OPENROUTER_MODEL_NAME,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.0,
+                "response_format": {"type": "json_object"}
+            }
+            try:
+                resp = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=(5, 15))
+                if resp.status_code == 200:
+                    data = resp.json()
+                    content = data["choices"][0]["message"]["content"].strip()
+                    if content.startswith("```json"):
+                        content = content[7:]
+                    if content.endswith("```"):
+                        content = content[:-3]
+                    
+                    parsed = json.loads(content)
+                    if isinstance(parsed, dict):
+                        if "subject" in parsed and "object" in parsed:
+                            return [parsed]
+                        for k, v in parsed.items():
+                            if isinstance(v, list):
+                                return v
+                        # Check for dictionary of dictionaries (Ollama format fallback)
+                        triplets = []
+                        for k, v in parsed.items():
+                            if isinstance(v, dict) and "subject" in v and "object" in v:
+                                triplets.append(v)
+                        if triplets:
+                            return triplets
+                    return parsed if isinstance(parsed, list) else []
+                else:
+                    print(f"OpenRouter returned status {resp.status_code}. Setting rate limit flag and falling back to Ollama.")
+                    _openrouter_rate_limited = True
+                    use_ollama = True
+            except Exception as e:
+                print(f"Graph extraction via OpenRouter failed: {e}. Setting rate limit flag and falling back to Ollama.")
+                _openrouter_rate_limited = True
+                use_ollama = True
+
+        if use_ollama:
+            try:
+                client = ollama.Client(host=OLLAMA_API_URL)
+                prompt = f"""You are a Knowledge Graph extractor.
+Given the following text, extract all entities and the relationships between them.
+Return the data EXCLUSIVELY as a JSON array of objects. 
+Each object must have exactly three string fields: "subject", "relation", "object".
+Do NOT return anything else, no markdown, no explanations.
+
+Text:
+{text}"""
+                resp = client.chat(
+                    model=OLLAMA_MODEL_NAME,
+                    messages=[{"role": "user", "content": prompt}],
+                    options={"temperature": 0.0},
+                    format="json"
+                )
+                content = resp["message"]["content"].strip()
+                parsed = json.loads(content)
+                if isinstance(parsed, dict):
+                    if "subject" in parsed and "object" in parsed:
+                        return [parsed]
+                    for k, v in parsed.items():
+                        if isinstance(v, list):
+                            return v
+                    # Check for dictionary of dictionaries
+                    triplets = []
+                    for k, v in parsed.items():
+                        if isinstance(v, dict) and "subject" in v and "object" in v:
+                            triplets.append(v)
+                    if triplets:
+                        return triplets
+                return parsed if isinstance(parsed, list) else []
+            except Exception as e:
+                print(f"Graph extraction via Ollama failed: {e}")
+        return []
+
+    @staticmethod
+    def extract_entities(query: str) -> list:
+        """Uses OpenRouter LLM or local Ollama fallback to extract key entities from a user query for Graph search."""
+        global _openrouter_rate_limited
+        use_ollama = False
+        if not OPENROUTER_API_KEY or _openrouter_rate_limited:
+            use_ollama = True
+
+        if not use_ollama:
+            prompt = f"""Extract the main entities (names, concepts, places) from this query.
+Return EXCLUSIVELY a JSON object with an "entities" key containing an array of strings. Do not return anything else.
+
+Query: "{query}" """
+            headers = {
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "model": OPENROUTER_MODEL_NAME,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.0,
+                "response_format": {"type": "json_object"}
+            }
+            try:
+                resp = requests.post("https://openrouter.ai/api/v1/chat/completions", headers=headers, json=payload, timeout=(5, 15))
+                if resp.status_code == 200:
+                    data = resp.json()
+                    content = data["choices"][0]["message"]["content"].strip()
+                    if content.startswith("```json"):
+                        content = content[7:]
+                    if content.endswith("```"):
+                        content = content[:-3]
+                    parsed = json.loads(content)
+                    if isinstance(parsed, list):
+                        return parsed
+                    elif isinstance(parsed, dict):
+                        for k, v in parsed.items():
+                            if isinstance(v, list):
+                                return v
+                else:
+                    print(f"OpenRouter entity extraction returned status {resp.status_code}. Setting rate limit flag and falling back to Ollama.")
+                    _openrouter_rate_limited = True
+                    use_ollama = True
+            except Exception:
+                _openrouter_rate_limited = True
+                use_ollama = True
+
+        if use_ollama:
+            try:
+                client = ollama.Client(host=OLLAMA_API_URL)
+                prompt = f"""Extract the main entities (names, concepts, places) from this query.
+Return EXCLUSIVELY a JSON object with an "entities" key containing an array of strings. Do not return anything else.
+
+Query: "{query}" """
+                resp = client.chat(
+                    model=OLLAMA_MODEL_NAME,
+                    messages=[{"role": "user", "content": prompt}],
+                    options={"temperature": 0.0},
+                    format="json"
+                )
+                content = resp["message"]["content"].strip()
+                parsed = json.loads(content)
+                if isinstance(parsed, list):
+                    return parsed
+                elif isinstance(parsed, dict):
+                    for k, v in parsed.items():
+                        if isinstance(v, list):
+                            return v
+            except Exception as e:
+                print(f"Entity extraction via Ollama failed: {e}")
+        return []
+    
+    @staticmethod
     def create_index(file_id: str, file_path: str) -> List[Dict[str, Any]]:
         """Parses a file, chunks it, generates embeddings, creates indices, and saves everything."""
         # 1. Parse file
@@ -320,7 +388,84 @@ class RAGPipeline:
         return chunks
 
     @staticmethod
-    def retrieve(file_id: str, db_chunks: List[dict], query: str, top_k: int = 15, top_p: int = 5) -> List[Dict[str, Any]]:
+    def build_graph_index(file_id: str, chunks: List[Dict[str, Any]]):
+        """Builds and saves the NetworkX Knowledge Graph asynchronously."""
+        print(f"[Worker] Building NetworkX Knowledge Graph for {file_id}...")
+        knowledge_graph = nx.DiGraph()
+        # Process all non-table chunks to build a complete graph using OpenRouter/Ollama
+        non_table_chunks = [c for c in chunks if not c.get("metadata", {}).get("is_table", False)]
+        
+        # Batch chunks to speed up graph building by ~5x
+        batch_size = 5
+        total_chunks = len(non_table_chunks)
+        for i in range(0, total_chunks, batch_size):
+            batch = non_table_chunks[i:i+batch_size]
+            combined_content = "\\n\\n".join([c["content"] for c in batch])
+            
+            triplets = RAGPipeline.extract_graph_data(combined_content)
+            for item in triplets:
+                if isinstance(item, dict):
+                    subj = item.get("subject")
+                    rel = item.get("relation")
+                    obj = item.get("object")
+                    if subj and rel and obj:
+                        knowledge_graph.add_edge(str(subj).strip(), str(obj).strip(), relation=str(rel).strip())
+            
+            # Update progress
+            from backend.app.storage import update_graph_progress
+            progress = int(min(100, ((i + batch_size) / max(1, total_chunks)) * 100))
+            update_graph_progress(file_id, progress)
+                            
+        graph_path = os.path.join(INDEX_DIR, f"{file_id}.graph.pkl")
+        with open(graph_path, "wb") as f:
+            pickle.dump(knowledge_graph, f)
+            
+        # Export interactive HTML diagram to Desktop
+        try:
+            from pyvis.network import Network
+            from backend.app.storage import get_file
+            
+            file_meta = get_file(file_id)
+            filename = file_meta.get("filename", file_id) if file_meta else file_id
+            base_name = os.path.splitext(filename)[0]
+            
+            diagram_dir = os.path.expanduser("~/Desktop/Graph_Diagrams")
+            os.makedirs(diagram_dir, exist_ok=True)
+            diagram_path = os.path.join(diagram_dir, f"{base_name}_graph.html")
+            
+            # Create beautiful dark-themed pyvis network
+            net = Network(height="100vh", width="100%", bgcolor="#0f172a", font_color="white", directed=True, cdn_resources="in_line")
+            net.from_nx(knowledge_graph)
+            
+            # Configure premium physics and styles
+            net.set_options("""
+            var options = {
+              "nodes": {
+                "shape": "dot",
+                "scaling": {"min": 10, "max": 30},
+                "font": {"size": 14, "face": "Inter, sans-serif"},
+                "color": {"border": "#3b82f6", "background": "#1e293b", "highlight": {"border": "#60a5fa", "background": "#334155"}}
+              },
+              "edges": {
+                "color": {"color": "#475569", "highlight": "#94a3b8"},
+                "smooth": {"type": "dynamic"}
+              },
+              "physics": {
+                "forceAtlas2Based": {"gravitationalConstant": -100, "springLength": 200},
+                "minVelocity": 0.75,
+                "solver": "forceAtlas2Based"
+              }
+            }
+            """)
+            net.save_graph(diagram_path)
+            print(f"[Worker] Interactive Graph diagram saved to {diagram_path}")
+        except Exception as e:
+            print(f"[Worker] Failed to export pyvis graph diagram: {e}")
+            
+        print(f"[Worker] Graph built successfully for: {file_id}")
+
+    @staticmethod
+    def retrieve(file_id: str, db_chunks: List[dict], query: str, top_k: int = 15, top_p: int = 5, skip_reranking: bool = False) -> List[Dict[str, Any]]:
         """Retrieves using isolated ChromaDB + BM25 Hybrid scores followed by CrossEncoder reranking."""
         bm25_path = os.path.join(INDEX_DIR, f"{file_id}.bm25.pkl")
         
@@ -363,9 +508,10 @@ class RAGPipeline:
         
         # Normalize BM25 keyword scores (0 to 1)
         max_bm25 = max(bm25_raw_scores) if len(bm25_raw_scores) > 0 else 0
+        denominator = max(max_bm25, 5.0) # Prevent inflating weak keyword matches
         bm25_scores = {}
         for idx, score in enumerate(bm25_raw_scores):
-            bm25_scores[idx] = float(score / max_bm25) if max_bm25 > 0 else 0.0
+            bm25_scores[idx] = float(score / denominator) if denominator > 0 else 0.0
             
         # --- C. HYBRID COMBINATION ---
         hybrid_results = []
@@ -387,23 +533,75 @@ class RAGPipeline:
         hybrid_results = sorted(hybrid_results, key=lambda x: x["score"], reverse=True)[:top_k]
         
         # --- D. CROSS-ENCODER RERANKING ---
-        reranker = get_reranker_model()
-        pairs = [[query, item["content"]] for item in hybrid_results]
-        
-        if pairs:
-            rerank_scores = reranker.predict(pairs)
-            for idx, r_score in enumerate(rerank_scores):
-                hybrid_results[idx]["rerank_score"] = float(r_score)
-            
-            # Sort by rerank score descending
-            reranked_results = sorted(hybrid_results, key=lambda x: x["rerank_score"], reverse=True)[:top_p]
-            
-            # Notebook strictly takes the top_p without dynamic pruning
-            # (Reranked results are already sliced to top_p above)
-        else:
-            reranked_results = hybrid_results[:top_p]
+        if skip_reranking:
+            reranked_results = hybrid_results
             for item in reranked_results:
                 item["rerank_score"] = item["score"]
+        else:
+            reranker = get_reranker_model()
+            pairs = [[query, item["content"]] for item in hybrid_results]
+            
+            if pairs:
+                rerank_scores = reranker.predict(pairs)
+                for idx, r_score in enumerate(rerank_scores):
+                    hybrid_results[idx]["rerank_score"] = float(r_score)
+                
+                # Sort by rerank score descending
+                reranked_results = sorted(hybrid_results, key=lambda x: x["rerank_score"], reverse=True)[:int(top_p) if top_p > 1 else max(1, int(len(hybrid_results) * top_p))]
+                
+                # Notebook strictly takes the top_p without dynamic pruning
+                # (Reranked results are already sliced to top_p above)
+            else:
+                reranked_results = hybrid_results[:int(top_p) if top_p > 1 else max(1, int(len(hybrid_results) * top_p))]
+                for item in reranked_results:
+                    item["rerank_score"] = item["score"]
+                
+        # --- E. GRAPH RAG CONTEXT ---
+        graph_path = os.path.join(INDEX_DIR, f"{file_id}.graph.pkl")
+        if os.path.exists(graph_path):
+            try:
+                import networkx as nx
+                import re
+                with open(graph_path, "rb") as f:
+                    knowledge_graph = pickle.load(f)
+                
+                graph_context_lines = []
+                
+                # Fast graph entity resolution (bypass slow LLM extraction at query time)
+                if isinstance(knowledge_graph, nx.DiGraph):
+                    query_lower = query.lower()
+                    query_words = [w for w in re.findall(r'\w+', query_lower) if len(w) > 4]
+                    
+                    for node in knowledge_graph.nodes():
+                        node_str = str(node).lower()
+                        if len(node_str) < 3:
+                            continue
+                            
+                        # Match if the exact node is in the query, or if any significant query word is in the node
+                        if node_str in query_lower or any(w in node_str for w in query_words):
+                            # Get all outgoing edges from this node
+                            for _, target, data in knowledge_graph.out_edges(node, data=True):
+                                rel = data.get("relation", "is related to")
+                                graph_context_lines.append(f"{node} {rel} {target}")
+                            # Get all incoming edges to this node
+                            for src, _, data in knowledge_graph.in_edges(node, data=True):
+                                rel = data.get("relation", "is related to")
+                                graph_context_lines.append(f"{src} {rel} {node}")
+                
+                if graph_context_lines:
+                    # Deduplicate and format
+                    unique_lines = list(set(graph_context_lines))
+                    graph_str = "KNOWLEDGE GRAPH CONTEXT:\n" + "\n".join(unique_lines)
+                    # Append as a high-scoring synthetic chunk
+                    reranked_results.insert(0, {
+                        "idx": -1,
+                        "score": 1.0,
+                        "rerank_score": 1.0,
+                        "content": graph_str,
+                        "metadata": {"is_table": False, "Header 1": "Graph Search"}
+                    })
+            except Exception as e:
+                print(f"Graph retrieval failed: {e}")
                 
         return reranked_results
 
@@ -500,7 +698,7 @@ explicitly mention it.
                     headers=headers,
                     json=payload,
                     stream=True,
-                    timeout=30
+                    timeout=120
                 )
                 response.raise_for_status()
                 for line in response.iter_lines():

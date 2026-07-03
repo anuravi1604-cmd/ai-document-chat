@@ -3,7 +3,7 @@ import sqlite3
 import json
 import uuid
 from datetime import datetime
-from backend.app.config import DB_PATH
+from backend.app.config import DB_PATH, INDEX_DIR
 
 def get_db_connection():
     """Establishes a connection to the SQLite database with dictionary rows."""
@@ -25,7 +25,9 @@ def init_db():
             file_type TEXT NOT NULL,
             file_size INTEGER NOT NULL,
             status TEXT NOT NULL,
-            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            is_isolated INTEGER DEFAULT 1,
+            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            graph_progress INTEGER DEFAULT 0
         )
     """)
     
@@ -112,16 +114,16 @@ def init_db():
 
 # --- FILE OPERATIONS ---
 
-def add_file(file_id: str, filename: str, file_path: str, file_type: str, file_size: int) -> dict:
+def add_file(file_id: str, filename: str, file_path: str, file_type: str, file_size: int, is_isolated: int = 1) -> dict:
     """Inserts a new file metadata entry into the database in 'processing' status."""
     conn = get_db_connection()
     cursor = conn.cursor()
     
     now = datetime.utcnow().isoformat()
     cursor.execute("""
-        INSERT INTO files (id, filename, file_path, file_type, file_size, status, uploaded_at)
-        VALUES (?, ?, ?, ?, ?, 'processing', ?)
-    """, (file_id, filename, file_path, file_type, file_size, now))
+        INSERT INTO files (id, filename, file_path, file_type, file_size, status, is_isolated, uploaded_at)
+        VALUES (?, ?, ?, ?, ?, 'processing', ?, ?)
+    """, (file_id, filename, file_path, file_type, file_size, is_isolated, now))
     
     conn.commit()
     conn.close()
@@ -144,6 +146,14 @@ def update_file_status(file_id: str, status: str):
     conn.commit()
     conn.close()
 
+def update_graph_progress(file_id: str, progress: int):
+    """Updates the graph building progress percentage."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE files SET graph_progress = ? WHERE id = ?", (progress, file_id))
+    conn.commit()
+    conn.close()
+
 def get_file(file_id: str) -> dict:
     """Fetches a single file entry."""
     conn = get_db_connection()
@@ -152,17 +162,26 @@ def get_file(file_id: str) -> dict:
     row = cursor.fetchone()
     conn.close()
     if row:
-        return dict(row)
+        d = dict(row)
+        graph_path = os.path.join(INDEX_DIR, f"{file_id}.graph.pkl")
+        d["graph_ready"] = os.path.exists(graph_path)
+        return d
     return None
 
 def list_files() -> list:
     """Lists all files stored in the database, ordered by upload date descending."""
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM files ORDER BY uploaded_at DESC")
+    cursor.execute("SELECT * FROM files WHERE is_isolated = 1 ORDER BY uploaded_at DESC")
     rows = cursor.fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    res = []
+    for r in rows:
+        d = dict(r)
+        graph_path = os.path.join(INDEX_DIR, f"{d['id']}.graph.pkl")
+        d["graph_ready"] = os.path.exists(graph_path)
+        res.append(d)
+    return res
 
 def delete_file(file_id: str):
     """Deletes a file and all associated chunks, sessions, and messages from SQLite."""
@@ -309,6 +328,14 @@ def create_collection(collection_id: str, name: str) -> dict:
     conn.close()
     return {"id": collection_id, "name": name, "created_at": now}
 
+def update_collection(collection_id: str, new_name: str) -> dict:
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE collections SET name = ? WHERE id = ?", (new_name, collection_id))
+    conn.commit()
+    conn.close()
+    return {"id": collection_id, "name": new_name}
+
 def list_collections() -> list:
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -325,16 +352,31 @@ def delete_collection(collection_id: str):
     conn.commit()
     conn.close()
 
+def is_file_in_collection_by_name(collection_id: str, filename: str) -> bool:
+    """Checks if a file with the same filename is already in the collection."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT 1 FROM files f
+        JOIN collection_files cf ON f.id = cf.file_id
+        WHERE cf.collection_id = ? AND f.filename = ?
+    """, (collection_id, filename))
+    row = cursor.fetchone()
+    conn.close()
+    return row is not None
+
 def add_file_to_collection(collection_id: str, file_id: str):
     conn = get_db_connection()
     cursor = conn.cursor()
-    try:
-        cursor.execute("INSERT INTO collection_files (collection_id, file_id) VALUES (?, ?)", (collection_id, file_id))
-        conn.commit()
-    except Exception:
-        pass # Already exists
-    finally:
+    cursor.execute("SELECT 1 FROM collection_files WHERE collection_id = ? AND file_id = ?", (collection_id, file_id))
+    exists = cursor.fetchone()
+    if exists:
         conn.close()
+        raise ValueError("This file is already in the collection.")
+    
+    cursor.execute("INSERT INTO collection_files (collection_id, file_id) VALUES (?, ?)", (collection_id, file_id))
+    conn.commit()
+    conn.close()
 
 def remove_file_from_collection(collection_id: str, file_id: str):
     conn = get_db_connection()
@@ -354,7 +396,13 @@ def get_collection_files(collection_id: str) -> list:
     """, (collection_id,))
     rows = cursor.fetchall()
     conn.close()
-    return [dict(r) for r in rows]
+    res = []
+    for r in rows:
+        d = dict(r)
+        graph_path = os.path.join(INDEX_DIR, f"{d['id']}.graph.pkl")
+        d["graph_ready"] = os.path.exists(graph_path)
+        res.append(d)
+    return res
 
 def get_or_create_collection_session(collection_id: str) -> str:
     conn = get_db_connection()

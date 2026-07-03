@@ -108,7 +108,7 @@
                         <i data-lucide="upload-cloud" class="h-5 w-5 text-gray-400 group-hover:text-brand-400"></i>
                     </div>
                     <p class="text-xs font-semibold text-gray-200">Drag & drop files here</p>
-                    <input type="file" id="file-input" class="hidden" accept=".pdf,.docx,.txt,.md,.markdown,.csv,.xlsx" />
+                    <input type="file" id="file-input" class="hidden" accept=".pdf,.docx,.txt,.md,.markdown,.csv,.xlsx" multiple />
                     <p class="text-[10px] text-gray-400 mt-1">Supports PDF, DOCX, TXT, MD, CSV, XLSX up to 50MB</p>
                 </div>
                 <!-- AUTO-OPEN OPTION -->
@@ -194,14 +194,7 @@
                     </div>
                     <div>
                         <div class="flex items-center gap-2">
-                            <h2 id="active-file-title" class="text-sm font-semibold text-white truncate max-w-md">Document
-                                Name.pdf</h2>
-                            <a id="active-file-open-link" href="#" target="_blank"
-                                class="text-gray-400 hover:text-brand-400 flex items-center justify-center p-0.5 rounded hover:bg-darkPanel/50 border border-transparent hover:border-darkBorder/40 transition"
-                                title="Open Original Document"
-                            >
-                                <i data-lucide="external-link" class="h-3.5 w-3.5"></i>
-                            </a>
+                            <h2 id="active-file-title" class="text-sm font-semibold text-white truncate max-w-md">Document Name.pdf</h2>
                         </div>
                         <div class="flex items-center gap-2 mt-0.5">
                             <span id="active-file-size" class="text-[10px] text-gray-400">1.2 MB</span>
@@ -254,6 +247,11 @@
                         class="hidden px-3 py-1.5 rounded-lg border border-brand-500/30 hover:bg-brand-500/10 hover:text-brand-300 text-xs text-brand-400 font-medium flex items-center gap-1.5 transition">
                         <i data-lucide="layers" class="h-3.5 w-3.5"></i>
                         View Files
+                    </button>
+                    <button id="btn-add-file-to-context" onclick="window.addFileToContext()"
+                        class="px-3 py-1.5 rounded-lg border border-darkBorder/80 hover:bg-green-500/10 hover:text-green-400 hover:border-green-500/30 text-xs text-gray-400 font-medium flex items-center gap-1.5 transition">
+                        <i data-lucide="file-plus" class="h-3.5 w-3.5"></i>
+                        Add File
                     </button>
                     <button id="btn-delete-file"
                         class="px-3 py-1.5 rounded-lg border border-darkBorder/80 hover:bg-red-500/20 hover:text-red-400 text-xs text-gray-400 font-medium flex items-center gap-1.5 transition">
@@ -384,7 +382,7 @@
     <div id="toast-container" class="fixed top-6 right-6 z-50 flex flex-col gap-2 max-w-sm"></div>
 
     <!-- MAIN JAVASCRIPT LOGIC -->
-    <script src="/static/js/app.js"></script>
+    <script src="/static/js/app.js?v=6"></script>
     <div id="source-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
 
         <div class="w-[800px] max-w-[90vw] bg-darkPanel border border-darkBorder rounded-xl p-6">
@@ -409,28 +407,40 @@
     <!-- Collection Files Modal -->
     <div id="collection-files-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
         <div class="w-[600px] max-w-[90vw] bg-darkPanel border border-darkBorder rounded-xl p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold text-white">
-                    <i data-lucide="folders" class="h-5 w-5 inline mr-1 text-brand-400"></i>
-                    Collection Documents
-                </h3>
-                <div class="flex items-center gap-3">
-                    <input type="file" id="collection-upload-input" class="hidden" onchange="window.uploadFileToCollection(event)" />
+            <div class="flex justify-between items-center mb-4 w-full">
+                <div class="flex items-center gap-2 flex-grow">
+                    <i data-lucide="folders" class="h-5 w-5 text-brand-400"></i>
+                    <input type="text" id="modal-collection-name" class="bg-transparent text-lg font-semibold text-white border-b border-transparent hover:border-darkBorder focus:border-brand-500 focus:outline-none transition w-1/2" />
+                    <button id="modal-save-name-btn" onclick="window.saveModalCollectionName()" class="hidden text-xs bg-brand-600 hover:bg-brand-500 text-white px-2 py-1 rounded transition">Save Name</button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.toggleModalAddExisting()" class="bg-darkPanel border border-darkBorder/80 hover:bg-darkBorder/50 text-gray-300 text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 transition">
+                        <i data-lucide="plus" class="h-3.5 w-3.5"></i>
+                        Add Existing
+                    </button>
+                    <input type="file" id="collection-upload-input" class="hidden" onchange="window.uploadFileToCollection(event)" multiple />
                     <button onclick="document.getElementById('collection-upload-input').click()" class="bg-brand-500 hover:bg-brand-400 text-white text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 transition">
                         <i data-lucide="upload" class="h-3.5 w-3.5"></i>
                         Upload File
                     </button>
-                    <button onclick="window.closeCollectionFilesModal()" class="text-gray-400 hover:text-white transition">
+                    <button onclick="window.closeCollectionFilesModal()" class="text-gray-400 hover:text-white transition ml-2">
                         ✕
                     </button>
                 </div>
             </div>
+            
+            <div id="modal-add-existing-container" class="hidden flex-col gap-2 p-3 bg-darkPanel/40 border border-darkBorder/60 rounded-lg mb-4">
+                <p class="text-xs text-gray-400">Select isolated documents to add to this collection (Hold Ctrl/Cmd for multiple):</p>
+                <select id="modal-add-existing-file" multiple class="w-full bg-darkPanel border border-darkBorder/80 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-brand-500/50 text-gray-200" size="4"></select>
+                <button onclick="window.submitModalAddExisting()" class="w-full px-3 py-1.5 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition mt-1">Add Selected Documents</button>
+            </div>
+
             <div id="collection-files-list" class="max-h-[60vh] overflow-y-auto mt-2">
             </div>
         </div>
     </div>
 
-<script src="/static/js/collections.js"></script>
+<script src="/static/js/collections.js?v=9"></script>
 
 </body>
 </html>

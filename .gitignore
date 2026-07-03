@@ -26,3 +26,24 @@ Thumbs.db
 *.orig
 *.rej
 GITHUB/
+
+# Virtual Environment
+rag_env/
+lib/
+
+# Old Evaluations
+evaluation/
+evaluation2/
+
+# Test/Debug Scripts
+test_*.py
+debug_*.py
+check_*.py
+delete_*.py
+fix_*.py
+simple_graph_rag.py
+
+# Loose DBs
+*.db
+*.log
+*.docx

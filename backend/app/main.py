@@ -1,4 +1,6 @@
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+os.environ["OMP_NUM_THREADS"] = "1"
 import uuid
 import json
 import shutil
@@ -24,9 +26,11 @@ from backend.app.storage import (
     get_session_messages,
     clear_chat_history,
     create_collection,
+    update_collection,
     list_collections,
     delete_collection,
     add_file_to_collection,
+    is_file_in_collection_by_name,
     remove_file_from_collection,
     get_collection_files,
     get_or_create_collection_session,
@@ -87,11 +91,42 @@ def process_document_in_background(file_id: str, file_path: str):
         add_chunks_wrapper(file_id, chunks)
         # Mark file as ready
         update_file_status(file_id, "ready")
+        
+        # Save parsed chunks as a Markdown file on the Desktop
+        try:
+            filename = file_meta.get("filename", file_id) if file_meta else file_id
+            md_dir = os.path.expanduser("~/Desktop/Parsed_Markdown_Files")
+            os.makedirs(md_dir, exist_ok=True)
+            
+            # Use original filename but swap extension to .md
+            base_name = os.path.splitext(filename)[0]
+            md_path = os.path.join(md_dir, f"{base_name}.md")
+            
+            with open(md_path, "w", encoding="utf-8") as f:
+                f.write(f"# Parsed Content for: {filename}\n\n")
+                for chunk in chunks:
+                    f.write(f"--- Chunk {chunk.get('chunk_index', '')} ---\n\n")
+                    f.write(chunk.get("content", ""))
+                    f.write("\n\n")
+            print(f"[Worker] Exported parsed markdown to {md_path}")
+        except Exception as e:
+            print(f"[Worker] Failed to export markdown to Desktop: {e}")
+            
         print(f"[Worker] Document index built and stored for file ID: {file_id}")
+        
+        # 4. Asynchronous Graph Building using a dedicated detached thread
+        # This prevents exhausting Starlette's API thread pool while Ollama processes chunk by chunk
+        import threading
+        print(f"[Worker] Starting ASYNC Graph indexing for file ID: {file_id} in detached thread")
+        t = threading.Thread(target=RAGPipeline.build_graph_index, args=(file_id, chunks))
+        t.daemon = True
+        t.start()
     except Exception as e:
         import traceback
         traceback.print_exc()
         print(f"[Worker ERROR] Failed to index document {file_id}: {str(e)}")
+        with open("/Users/anushka/.gemini/antigravity/scratch/doc_chat_rag/error.log", "a") as f:
+            f.write(f"ERROR for {file_id}:\n" + traceback.format_exc() + "\n")
         update_file_status(file_id, "error")
 
 def add_chunks_wrapper(file_id: str, chunks: list):
@@ -129,6 +164,22 @@ def upload_document(
 ):
     """Uploads a file, saves it, and starts RAG pipeline indexing in the background."""
     filename = file.filename
+    
+    if collection_id == "null":
+        collection_id = None
+        
+    if collection_id:
+        existing = next((f for f in get_collection_files(collection_id) if f["filename"] == filename), None)
+        if existing:
+            print(f"Overwriting file {filename} in collection {collection_id}")
+            try: delete_document(existing["id"])
+            except: pass
+    else:
+        existing = next((f for f in list_files() if f["filename"] == filename), None)
+        if existing:
+            print(f"Overwriting file {filename} in isolated workspace")
+            try: delete_document(existing["id"])
+            except: pass
     ext = os.path.splitext(filename)[1].lower()
     
     if ext not in [".pdf", ".docx", ".txt", ".md", ".markdown", ".csv", ".xlsx"]:
@@ -165,13 +216,15 @@ def upload_document(
         file_type = "unknown"
     
     # 2. Add metadata record in SQLite (processing status)
+    is_isolated = 0 if collection_id else 1
     try:
         file_meta = add_file(
             file_id=file_id,
             filename=filename,
             file_path=temp_file_path,
             file_type=file_type,
-            file_size=file_size
+            file_size=file_size,
+            is_isolated=is_isolated
         )
     except Exception as e:
         if os.path.exists(temp_file_path):
@@ -246,7 +299,7 @@ def view_document(file_id: str):
     return FileResponse(
         path=file_path,
         media_type=media_type,
-        filename=doc.get("filename")
+        headers={"Content-Disposition": f'inline; filename="{doc.get("filename")}"'}
     )
 
 @app.delete("/api/files/{file_id}")
@@ -278,6 +331,28 @@ def delete_document(file_id: str):
             os.remove(bm25_path)
         except Exception as e:
             print(f"Warning: Failed to delete BM25 index {bm25_path}: {e}")
+            
+    # Delete Graph index
+    graph_path = os.path.join(INDEX_DIR, f"{file_id}.graph.pkl")
+    if os.path.exists(graph_path):
+        try:
+            os.remove(graph_path)
+        except Exception as e:
+            print(f"Warning: Failed to delete Graph index {graph_path}: {e}")
+            
+    # Delete Desktop Artifacts
+    filename = doc.get("filename")
+    if filename:
+        base_name = os.path.splitext(filename)[0]
+        md_path = os.path.expanduser(f"~/Desktop/Parsed_Markdown_Files/{base_name}.md")
+        if os.path.exists(md_path):
+            try: os.remove(md_path)
+            except: pass
+            
+        graph_html_path = os.path.expanduser(f"~/Desktop/Graph_Diagrams/{base_name}_graph.html")
+        if os.path.exists(graph_html_path):
+            try: os.remove(graph_html_path)
+            except: pass
             
     # 3. Clean database (SQLite ON DELETE CASCADE cleans chunks, sessions, and messages automatically!)
     try:
@@ -336,7 +411,7 @@ def clear_history(file_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/files/{file_id}/chat")
-async def chat_with_document(file_id: str, payload: ChatRequest):
+def chat_with_document(file_id: str, payload: ChatRequest):
     """Isolated hybrid retrieval and LLM context answering, streaming response via SSE."""
     doc = get_file(file_id)
     if not doc:
@@ -398,7 +473,7 @@ async def chat_with_document(file_id: str, payload: ChatRequest):
     
     # --- STRUCTURED DATA ROUTING ---
     if file_type in ["csv", "excel"]:
-        async def structured_sse_event_generator():
+        def structured_sse_event_generator():
             full_assistant_response = ""
             from backend.app.pipeline import StructuredDataPipeline
             try:
@@ -428,15 +503,22 @@ async def chat_with_document(file_id: str, payload: ChatRequest):
     context_str = RAGPipeline.construct_prompt(query, retrieved_chunks)
     
     # 6. Stream SSE generator
-    async def sse_event_generator():
+    def sse_event_generator():
         # Pre-format sources payload
+        import math
         sources = []
         for idx, item in enumerate(retrieved_chunks):
+            s_score = float(item.get("score", 0.0))
+            if math.isnan(s_score): s_score = 0.0
+            
+            r_score = float(item.get("rerank_score", s_score))
+            if math.isnan(r_score): r_score = 0.0
+            
             sources.append({
                 "source_index": idx + 1,
-                "content": item["content"],
-                "score": float(item["score"]),
-                "rerank_score": float(item.get("rerank_score", item["score"])),
+                "content": item.get("content", ""),
+                "score": s_score,
+                "rerank_score": r_score,
                 "is_table": bool(item.get("metadata", {}).get("is_table", False)),
                 "header": item.get("metadata", {}).get("Header 1", ""),
                 "filename": item.get("metadata", {}).get("filename", "")
@@ -485,6 +567,17 @@ def api_create_collection(payload: CollectionRequest):
     col = create_collection(collection_id, payload.name)
     return col
 
+@app.put("/api/collections/{collection_id}")
+def api_update_collection(collection_id: str, payload: CollectionRequest):
+    name_to_check = payload.name.strip().lower()
+    existing_collections = list_collections()
+    for col in existing_collections:
+        if col["name"].strip().lower() == name_to_check and col["id"] != collection_id:
+            raise HTTPException(status_code=400, detail=f"A collection with the name '{payload.name}' already exists.")
+    
+    updated_col = update_collection(collection_id, payload.name)
+    return updated_col
+
 @app.get("/api/collections")
 def api_list_collections():
     return list_collections()
@@ -499,8 +592,21 @@ class CollectionFileRequest(BaseModel):
 
 @app.post("/api/collections/{collection_id}/files")
 def api_add_file_to_collection(collection_id: str, payload: CollectionFileRequest):
-    add_file_to_collection(collection_id, payload.file_id)
-    return {"message": "File added to collection"}
+    file_meta = get_file(payload.file_id)
+    if not file_meta:
+        raise HTTPException(status_code=404, detail="Document not found")
+        
+    if is_file_in_collection_by_name(collection_id, file_meta["filename"]):
+        raise HTTPException(
+            status_code=400,
+            detail=f"A file named '{file_meta['filename']}' is already in this collection."
+        )
+        
+    try:
+        add_file_to_collection(collection_id, payload.file_id)
+        return {"message": "File added to collection"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.delete("/api/collections/{collection_id}/files/{file_id}")
 def api_remove_file_from_collection(collection_id: str, file_id: str):
@@ -522,7 +628,7 @@ def api_get_collection_messages(collection_id: str):
     }
 
 @app.post("/api/collections/{collection_id}/chat")
-async def chat_with_collection(collection_id: str, payload: ChatRequest):
+def chat_with_collection(collection_id: str, payload: ChatRequest):
     query = payload.query.strip()
     if not query:
         raise HTTPException(status_code=400, detail="Query cannot be empty")
@@ -561,7 +667,7 @@ async def chat_with_collection(collection_id: str, payload: ChatRequest):
     
     # --- STRUCTURED DATA ROUTING ---
     if len(structured_files_info) > 0:
-        async def structured_collection_sse_event_generator():
+        def structured_collection_sse_event_generator():
             full_assistant_response = ""
             from backend.app.pipeline import StructuredDataPipeline
             try:
@@ -596,7 +702,8 @@ async def chat_with_collection(collection_id: str, payload: ChatRequest):
                     db_chunks=db_chunks,
                     query=query,
                     top_k=top_candidates,
-                    top_p=top_p
+                    top_p=top_p,
+                    skip_reranking=True
                 )
                 for chunk in file_chunks:
                     if "metadata" not in chunk: chunk["metadata"] = {}
@@ -605,11 +712,27 @@ async def chat_with_collection(collection_id: str, payload: ChatRequest):
         except Exception as e:
             print(f"Retrieval error for file {file_id}: {e}")
             
-    # Sort all pooled chunks globally by rerank_score (higher is better)
-    all_retrieved_chunks.sort(key=lambda x: x.get("rerank_score", x.get("score", 0)), reverse=True)
+    # Global Reranking for Collections
+    # Sort all pooled chunks globally by hybrid score first
+    all_retrieved_chunks.sort(key=lambda x: x.get("score", 0.0), reverse=True)
     
-    # Take the absolute Top 8 overall
-    final_chunks = all_retrieved_chunks[:8]
+    # Take top 60 candidates overall for reranking
+    candidates_to_rerank = all_retrieved_chunks[:60]
+    
+    from backend.app.pipeline import get_reranker_model
+    reranker = get_reranker_model()
+    pairs = [[query, item["content"]] for item in candidates_to_rerank]
+    
+    if pairs:
+        rerank_scores = reranker.predict(pairs)
+        for idx, r_score in enumerate(rerank_scores):
+            candidates_to_rerank[idx]["rerank_score"] = float(r_score)
+            
+    # Sort by rerank score descending
+    candidates_to_rerank.sort(key=lambda x: x.get("rerank_score", x.get("score", 0)), reverse=True)
+    
+    # Take the absolute Top 20 overall for collections to ensure coverage across multiple documents
+    final_chunks = candidates_to_rerank[:20]
     
     # Save User Message was already done above
 
@@ -618,14 +741,19 @@ async def chat_with_collection(collection_id: str, payload: ChatRequest):
     context_str = RAGPipeline.construct_prompt(query, final_chunks)
     
     # Stream SSE
-    async def sse_event_generator():
+    def sse_event_generator():
+        import math
         sources = []
         for idx, item in enumerate(final_chunks):
+            s_score = float(item.get("score", 0.0))
+            if math.isnan(s_score): s_score = 0.0
+            r_score = float(item.get("rerank_score", s_score))
+            if math.isnan(r_score): r_score = 0.0
             sources.append({
                 "source_index": idx + 1,
                 "content": item["content"],
-                "score": float(item["score"]),
-                "rerank_score": float(item.get("rerank_score", item["score"])),
+                "score": s_score,
+                "rerank_score": r_score,
                 "is_table": bool(item.get("metadata", {}).get("is_table", False)),
                 "header": item.get("metadata", {}).get("Header 1", ""),
                 "filename": item.get("metadata", {}).get("filename", "")
