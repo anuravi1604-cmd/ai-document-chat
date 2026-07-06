@@ -176,6 +176,7 @@ class RAGPipeline:
     def extract_graph_data(text: str) -> list:
         """Uses OpenRouter LLM or local Ollama fallback to extract Knowledge Graph triplets from text."""
         global _openrouter_rate_limited
+        use_ollama = False
         if not OPENROUTER_API_KEY or _openrouter_rate_limited:
             use_ollama = True
             
@@ -273,6 +274,7 @@ Text:
     def extract_entities(query: str) -> list:
         """Uses OpenRouter LLM or local Ollama fallback to extract key entities from a user query for Graph search."""
         global _openrouter_rate_limited
+        use_ollama = False
         use_ollama = False
         if not OPENROUTER_API_KEY or _openrouter_rate_limited:
             use_ollama = True

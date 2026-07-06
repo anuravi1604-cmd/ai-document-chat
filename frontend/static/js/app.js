@@ -1057,17 +1057,28 @@
         }
         // Clear Chat History Handler
         btnClearChat.addEventListener("click", async () => {
-            if (!activeFileId || isGenerating) return;
+            const isCollection = window.activeCollectionId != null;
+            const targetId = isCollection ? window.activeCollectionId : activeFileId;
+            
+            if (!targetId || isGenerating) return;
             if (!confirm("Are you sure you want to wipe the conversational history for this workspace?")) return;
 
             try {
-                const response = await fetch(`${API_BASE}/files/${activeFileId}/clear`, { method: "POST" });
+                const endpoint = isCollection ? `${API_BASE}/collections/${targetId}/clear` : `${API_BASE}/files/${targetId}/clear`;
+                const response = await fetch(endpoint, { method: "POST" });
                 if (response.ok) {
+                    const chatFeed = document.getElementById("chat-feed");
+                    if (chatFeed) chatFeed.innerHTML = "";
                     citationsSidebar.classList.add("hidden");
                     const rr2 = document.getElementById("right-resizer");
                     if (rr2) rr2.classList.add("hidden");
                     showToast("History Cleared", "Message logs cleared for this workspace.", "success");
-                    selectWorkspace(activeFileId, "ready");
+                    
+                    if (isCollection) {
+                        if(window.selectCollection) window.selectCollection(targetId);
+                    } else {
+                        selectWorkspace(targetId, "ready");
+                    }
                 }
             } catch (err) {
                 console.error(err);

@@ -716,8 +716,8 @@ def chat_with_collection(collection_id: str, payload: ChatRequest):
     # Sort all pooled chunks globally by hybrid score first
     all_retrieved_chunks.sort(key=lambda x: x.get("score", 0.0), reverse=True)
     
-    # Take top 60 candidates overall for reranking
-    candidates_to_rerank = all_retrieved_chunks[:60]
+    # Take up to 150 candidates overall for reranking to ensure no file's chunks are unfairly dropped
+    candidates_to_rerank = all_retrieved_chunks[:150]
     
     from backend.app.pipeline import get_reranker_model
     reranker = get_reranker_model()
@@ -779,3 +779,13 @@ def chat_with_collection(collection_id: str, payload: ChatRequest):
         yield "event: done\ndata: [DONE]\n\n"
         
     return StreamingResponse(sse_event_generator(), media_type="text/event-stream")
+
+@app.post("/api/collections/{collection_id}/clear")
+def clear_collection_chat_history(collection_id: str):
+    """Clears conversational logs for this collection workspace."""
+    from backend.app.storage import clear_collection_history
+    try:
+        clear_collection_history(collection_id)
+        return {"status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

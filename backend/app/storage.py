@@ -440,3 +440,15 @@ def get_collection_messages(session_id: str) -> list:
     rows = cursor.fetchall()
     conn.close()
     return [{"id": r["id"], "role": r["role"], "content": r["content"], "sources": json.loads(r["sources"]) if r["sources"] else None, "created_at": r["created_at"]} for r in rows]
+
+def clear_collection_history(collection_id: str):
+    """Clears all chat history associated with a specific collection."""
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM collection_sessions WHERE collection_id = ?", (collection_id,))
+    row = cursor.fetchone()
+    if row:
+        session_id = row["id"]
+        cursor.execute("DELETE FROM collection_messages WHERE session_id = ?", (session_id,))
+    conn.commit()
+    conn.close()
