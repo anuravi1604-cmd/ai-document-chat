@@ -395,7 +395,7 @@ if (tabDocs && tabCollections) {
 
     // --- COLLECTION FILES MODAL ---
     window.openCollectionFilesModal = async function(colId) {
-        const targetId = colId || window.activeCollectionId;
+        const targetId = (typeof colId === 'string' && colId.trim() !== '') ? colId : window.activeCollectionId;
         if (!targetId) return;
         activeModalCollectionId = targetId;
         
