@@ -1,122 +1,82 @@
 [
     {
-        "query": "What is the schedule for delay collection charge per quintal at Surya Towers, Secunderabad-500 003 (A.P.)?",
-        "expected_output": "The schedule for delay collection charge per quintal at Surya Towers, Secunderabad-500 003 (A.P.) is X 10/- per day."
+        "query": "What is the bid end date and time?",
+        "expected_output": "21-10-2024 12:00:00"
     },
     {
-        "query": "What is the condition for re-routing or re-booking of goods mentioned in the given text?",
-        "expected_output": "The condition for re-routed or re-booked goods is that it requires Bank's written permission."
+        "query": "What is the standard specified for Portable Fire Extinguishers (V2) in the given text?",
+        "expected_output": "IS 15683:2018"
     },
     {
-        "query": "Under what circumstances will the goods be delivered to someone without Policy No. at Surya Towers?",
-        "expected_output": "The goods will be delivered to someone without Policy No. at Surya Towers only with written authorship from the Consignee Bank."
+        "query": "What is the bid number mentioned in the document?",
+        "expected_output": "GEM/2024/B/5454327"
     },
     {
-        "query": "What is the GSTIN of the consignee or recipient listed in this document?",
-        "expected_output": "The GSTIN of the consignee or recipient listed in this document is NAUT."
+        "query": "What is the EMD Amount specified in the bid details?",
+        "expected_output": "302000"
     },
     {
-        "query": "What are the actual weight and dimensions of the consignment, as mentioned in the document?",
-        "expected_output": "The actual weight of the consignment is Rato (7) and its dimensions are Length: Not specified, Width: Not specified, Height: Not specified. If it's a bulky/ODC consignment, the dimension details are not provided in this document."
+        "query": "Who is the designated beneficiary for EMD and performance security in this tender document?",
+        "expected_output": "FINANCE AND ACCOUNTS OFFICER, CENTRAL PROCUREMENT DEPARTMENT, 8th Floor, Scope Minar, ONGC, Laxmi Nagar, Delhi-110092 (Oil And Natural Gas Corporation Ltd.)"
     },
     {
-        "query": "What is the original manifest consignment number with the Sin. Code mentioned in the document?",
-        "expected_output": "The original manifest consignment number with the Sin. Code mentioned in the document is [Namo A Sonature Silf dete & Ruebar vamp) M.N."
+        "query": "For bids exceeding Rs 10 Crore, who must certify the local content declaration if the OEM is a company?",
+        "expected_output": "Statutory auditor or cost auditor"
     },
     {
-        "query": "What is the company name that manufactures Monitoring Technologies?",
-        "expected_output": "The company name that manufactures Monitoring Technologies is Adash, spol. s r.o."
+        "query": "Are traders eligible for purchase preference under the Public Procurement Policy for Micro and Small Enterprises?",
+        "expected_output": "No, traders are excluded from the purview of the policy and are not eligible for any purchase preference."
     },
     {
-        "query": "Where is the headquarters of Adash located according to the given text?",
-        "expected_output": "The headquarters of Adash is located at Hlubinska 32, 702 00, Ostrava, Czech Republic."
+        "query": "What percentage of total quantity is awarded to an MSE seller that matches the L-1 price under the purchase preference policy?",
+        "expected_output": "25%"
     },
     {
-        "query": "What are the contact details for Monitoring Technologies according to the given text?",
-        "expected_output": "The contact details for Monitoring Technologies are: Phone: +91 44 285 23 449, Tele/Fax: +91 41 421 38 987, Mobile: +91 (0) 8754046672, E-Mail: info@monitoringtechnologies.in, monitoring.technologies@outlook.com, Website: www.monitoringtechnologies.in."
+        "query": "Under what conditions are MSE benefits allowed according to the text?",
+        "expected_output": "MSE benefits are allowed only if the seller is validated online in GeM profile and validated and approved by the Buyer after evaluation of submitted documents."
     },
     {
-        "query": "What is the email address of JSW Steel Limited's Vijayanagar Works?",
-        "expected_output": "comml.vijayanagar@jsw.in"
+        "query": "Who initially bears the inspection fees/charges according to the agreement between the buyer and the Inspection Agency?",
+        "expected_output": "The buyer bears the inspection fees/charges initially as per their internal arrangement with the Inspection Agency."
     },
     {
-        "query": "What is the total value of the order placed by JSW Steel Limited?",
-        "expected_output": "The total value of the order is 5,400,000.00 #INR#."
+        "query": "Who bears the cost of tests and examinations conducted on the seller's premises during inspection?",
+        "expected_output": "The seller bears and pays all costs attendant thereon."
     },
     {
-        "query": "What are the specifications for the Vibration Analyzer ordered by JSW Steel Limited?",
-        "expected_output": "The Vibration Analyzer's specifications include Monitoring, Type:Vibration; Number of Channel :4; Range :120DB Dynamic; Output:USB 2.0, 100 m Ethernet; Power Supply: 0-20V; Frequency Range: 0-80000 Hz; Mounting: Wireless; Electrical Connection: BNC Type Proximity Probe Cables; Make: Emerson; Model: A21404CB9ENNA9KH; Additional Information: With STD Periodic Vib Analysis, DLPS, ADV Cross Channel DLP, Balancing DLP, Triaxial Sensor Kit, 4 Channel Accessories Kit, CSITA, Hard Carrying Case."
+        "query": "Who is the final authority to certify performance and accept the consignment?",
+        "expected_output": "The Inspecting officer."
     },
     {
-        "query": "What is the Centralised Service Tax Regn. No. for the consignor mentioned in the text?",
-        "expected_output": "Centralised Service Tax Regn. No. is AACCA4861CST 001."
+        "query": "Under what conditions is the highest quoting bidder (H-1) allowed to participate in the Reverse Auction?",
+        "expected_output": "H-1 is allowed to participate in RA if: (i) only 2-3 technically qualified bidders; (ii) buyer splits bid among N sellers and H1 bid is within N; (iii) only one OEM's primary product remains after H-1 elimination; (iv) L-1 is non-MSE and H-1 is eligible MSE within 15% price band; (v) L-1 is non-MII and H-1 is eligible MII within 20% price band."
     },
     {
-        "query": "What is the purchase order number and customer code for the consignment sent from Cochin Refinery?",
-        "expected_output": "The purchase order number is N8 1000 and the customer code is not explicitly mentioned in the text."
+        "query": "What are the minimum local content percentages required for a supplier to qualify as Class 1 and Class 2 Local Supplier for the Portable Vibration Analysers?",
+        "expected_output": "Minimum 50% local content for Class 1 and 20% local content for Class 2 Local Supplier."
     },
     {
-        "query": "What are the details of the consignment being transported according to the E Way Bill (including HSN Code, actual weight, IAD Type, Dimension of Consignment, Total CFT/Pkgs., and Vehicle Marks Identification)?",
-        "expected_output": "The details of the consignment are: HSN CODE : 90261010, Actual Wt. : 5 kgs., IAD TYPE : 1384, Dimension of Consignment (for Bulky / ODC) : Not specified in the text, Vehicle Marks Identification : Not specified in the text."
+        "query": "How many documents are listed for the Portable Vibration Analysers procurement?",
+        "expected_output": "8"
     },
     {
-        "query": "What is the name of the product being described in this text?",
-        "expected_output": "The name of the product is 'CSI 2140 2 CH Vibration Analyser (Consist with accessories Kit)'"
+        "query": "What is the maximum percentage by which the Purchaser can increase or decrease the quantity at the time of placement of contract according to the Option Clause?",
+        "expected_output": "25 percent of bid quantity"
     },
     {
-        "query": "Which sensor is used in this CSI 2140 Vibration Analyzer?",
-        "expected_output": "The sensor used in this CSI 2140 Vibration Analyzer is 'P404G74 or P404656.'"
+        "query": "What is the beneficiary name for online EMD payment?",
+        "expected_output": "Oil and Natural Gas Corporation Limited"
     },
     {
-        "query": "What is the type of the power supply for this CSI 2140 Vibration Analyzer?",
-        "expected_output": "The power supply for this CSI 2140 Vibration Analyzer is 'External, Desktop UNIV AC Line-In 15VDC@4A OUT Cable.'"
+        "query": "What documents must a bidder submit along with their bid for Vendor Code Creation?",
+        "expected_output": "Copy of PAN Card, Copy of GSTIN, Copy of Cancelled Cheque, and Copy of EFT Mandate duly certified by Bank."
     },
     {
-        "query": "What is the order quantity for the Four Channel Vibration Analyzer?",
-        "expected_output": "The order quantity for the Four Channel Vibration Analyzer is 1."
+        "query": "Within how many days of award of contract must the successful bidder upload scanned copy or proof of Online Payment Transfer in place of PBG?",
+        "expected_output": "15 days"
     },
     {
-        "query": "What is the Gross Price for the Four Channel Vibration Analyzer?",
-        "expected_output": "The Gross Price for the Four Channel Vibration Analyzer is INR 6,304,500.00."
-    },
-    {
-        "query": "What is the HSN/SAC Code for the Four Channel Vibration Analyzer?",
-        "expected_output": "The HSN/SAC Code for the Four Channel Vibration Analyzer is 9031 80 00."
-    },
-    {
-        "query": "Who provided the training on the Supplied Vibration analyzer from March 6-8, 2024?",
-        "expected_output": "Engineers from Monitoring Technologies."
-    },
-    {
-        "query": "What is the GSTIN of the supplier mentioned in Part A of the document dated May 3, 2024 at 11:26 AM?",
-        "expected_output": "The GSTIN of the supplier is 5916 2057 0441."
-    },
-    {
-        "query": "What is the transaction type for the document with Document No. 2324059 dated May 3, 2024?",
-        "expected_output": "The transaction type is Regular."
-    },
-    {
-        "query": "Where should the material be delivered for BPCL Materials Gate?",
-        "expected_output": "The material should be delivered at Bharat Petroleum Corporation Limited Main Warehouse, Mumbai Refinery, Mahul, Mumbai 400 074."
-    },
-    {
-        "query": "Which identity proofs are accepted for a person to enter the refinery?",
-        "expected_output": "A person can enter inside the refinery with any one of the identity proof viz. driving licence / PAN Card / Adhar card etc."
-    },
-    {
-        "query": "What are the working hours for BPCL's Main Warehouse?",
-        "expected_output": "BPCL's Main Warehouse accepts material from 8:00 hrs till 15:00 hrs on all working days."
-    },
-    {
-        "query": "What is the Bidder / Contractor prohibited from doing under the given text regarding information provided by the Principal as part of the business relationship?",
-        "expected_output": "The Bidder / Contractor is prohibited from improperly using, for purposes of competition or personal gain, or passing on any information or document provided by the Principal as part of the business relationship, including plans, technical proposals, and business details, including information contained or transmitted electronically."
-    },
-    {
-        "query": "What is the requirement for a bidder/contractor of foreign origin when it comes to disclosing agents and representatives in India related to a tender mentioned in the text?",
-        "expected_output": "The bidder(s)/ contractor (s) of foreign origin shall disclose the name and address of agents and representatives in India related to this tender."
-    },
-    {
-        "query": "What is required from the bidder(s)/contractor(s) who have signed the Pact regarding approaching courts while the matters/disputes/issues, related to tender are ongoing?",
-        "expected_output": "The bidder(s)/ contractor (s) who have signed the Pact shall not approach the Courts while the matters/disputes/issues, related to tender are ongoing."
+        "query": "What is the applicable concessional rate of GST mentioned in the document?",
+        "expected_output": "12%"
     }
 ]
