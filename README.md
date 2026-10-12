@@ -43,9 +43,26 @@ ContextIQ leverages a state-of-the-art multi-stage retrieval architecture for un
 - **Active Citation Grounding**: Clicking the `Grounded Citations` badge under AI answers slides open the Citations Sidebar. In-text citation links (e.g. `[Source 1]`) linkify dynamically—clicking them automatically scrolls to and highlights the target source card in the sidebar with an amber pulse animation.
 
 ### 6. DeepEval RAG Testing Framework
-ContextIQ includes a dedicated, robust evaluation pipeline built on **DeepEval** to programmatically score and validate the RAG application's performance using an LLM-as-a-judge approach.
-- Tests core metrics: **Answer Relevancy**, **Faithfulness**, **Contextual Precision**, **Contextual Recall**, **Contextual Relevancy**, and **Hallucination**.
-- Automatically queries the semantic retrieval pipeline, builds `LLMTestCase` objects, and generates visual charts (`metrics_comparison.png`) and comprehensive JSON/CSV reports.
+ContextIQ includes a dedicated evaluation pipeline built on **DeepEval** to assess the RAG application's performance using an LLM-as-a-judge approach. The pipeline uses **Mistral via Ollama** as the evaluation judge and evaluates a benchmark of 20 question-answer pairs against expected answers and retrieved context.
+
+- **Evaluation Metrics**: Answer Relevancy, Faithfulness, Contextual Relevancy, Contextual Precision, Contextual Recall, and Hallucination.
+- **RAG Pipeline Evaluation**: Executes the retrieval pipeline, cross-encoder reranking, and Ollama-based answer generation before evaluating each response.
+- **Automated Reporting**: Builds `LLMTestCase` objects and generates JSON/CSV reports and a visual comparison chart.
+
+#### Evaluation Results
+
+| Metric | Average Score |
+|---|---:|
+| Answer Relevancy | 0.664 |
+| Faithfulness | 0.787 |
+| Contextual Relevancy | 0.160 |
+| Contextual Precision | 0.702 |
+| Contextual Recall | 0.742 |
+| Hallucination | 0.423 |
+
+Faithfulness achieved the highest score among the five quality metrics, while Contextual Relevancy represents the primary area for improvement. The Hallucination score measures detected hallucination, for which lower values are better.
+
+Evaluation artifacts are available in `evaluation_finocr/`, including `report.json`, `report.csv`, `test_dataset.json`, and `metrics_comparison.png`.
 
 ---
 
